@@ -14,3 +14,14 @@ dev = [
     "pytest",
     "ruff",
 ]
+
+[build-system]
+requires = ["uv_build>=0.9.7,<0.10"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "secondinspector"
+module-root = ""
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

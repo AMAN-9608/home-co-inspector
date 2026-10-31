@@ -8,38 +8,7 @@ from pathlib import Path
 from meta_sam_parser import parse_responses_stream, video_segmentation_format
 from openai import AsyncOpenAI
 
-
-async def stream_events(stream):
-    completed = set()
-    async for event in stream:
-        data = event.model_dump() if hasattr(event, "model_dump") else dict(event)
-        lane = (
-            data.get("item_id"),
-            data.get("output_index"),
-            data.get("content_index"),
-        )
-        if data.get("type") == "response.output_text.done":
-            if lane not in completed:
-                completed.add(lane)
-                yield data
-            continue
-        yield data
-        part = data.get("part")
-        if (
-            data.get("type") == "response.content_part.done"
-            and lane not in completed
-            and isinstance(part, dict)
-            and part.get("type") == "output_text"
-            and isinstance(part.get("text"), str)
-        ):
-            completed.add(lane)
-            yield {
-                "type": "response.output_text.done",
-                "item_id": lane[0],
-                "output_index": lane[1],
-                "content_index": lane[2],
-                "text": part["text"],
-            }
+from secondinspector.sam import stream_events
 
 
 async def main():
