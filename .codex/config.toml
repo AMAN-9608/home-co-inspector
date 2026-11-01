@@ -1,0 +1,13 @@
+default_permissions = "meta-api"
+
+[features]
+network_proxy = true
+
+[permissions.meta-api]
+extends = ":workspace"
+
+[permissions.meta-api.network]
+enabled = true
+
+[permissions.meta-api.network.domains]
+"api.meta.ai" = "allow"

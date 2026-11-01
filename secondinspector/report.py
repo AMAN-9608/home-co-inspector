@@ -6,6 +6,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+from secondinspector.ui_helpers import coverage_rooms
+
 FIELDS = [
     "id", "source", "room", "sop_section", "component_phrase", "defect_phrase", "description",
     "utterance", "t_start", "t_end", "frame", "box", "status", "evidence_path", "measurement",
@@ -66,8 +68,12 @@ def apply_review(findings, review):
         f["note"] = entry.get("note")
         result.append(f)
     for i, f in enumerate(review.get("added", [])):
+        entry = items.get(f.get("id"), {})
+        if entry.get("decision") == "rejected":
+            continue
+        f = {**f, **(entry.get("edits") or {})}
         result.append(dict(normalize(f, id=f"inspector-{i}"), source="inspector", confirmed=True,
-                           note=f.get("note")))
+                           note=entry.get("note") or f.get("note")))
     return result
 
 
@@ -161,21 +167,21 @@ def level_section(level):
 
 
 def coverage_section(coverage):
-    rooms = (coverage or {}).get("rooms") or {}
+    rooms = coverage_rooms(coverage)
     if not rooms:
         return ""
-    rows = [f'<tr><td>{esc(room.title())}</td><td>{esc(i.get("item"))}</td>'
+    rows = [f'<tr><td>{esc((info.get("room") or "Unknown room").title())}</td><td>{esc(i.get("label") or i.get("item"))}</td>'
             f'<td class="cov {esc(i.get("status"))}">{COVERAGE_LABELS.get(i.get("status"), esc(i.get("status")))}</td></tr>'
-            for room, info in rooms.items() for i in info.get("items", [])]
+            for info in rooms for i in info.get("items", [])]
     return ('<section><h2>Coverage</h2><table><thead><tr><th>Room</th><th>Item</th><th>Status</th></tr>'
             f'</thead><tbody>{"".join(rows)}</tbody></table></section>')
 
 
 def not_inspected_section(coverage):
-    rooms = (coverage or {}).get("rooms") or {}
-    missing = [f"<li>{esc(room.title())}: {esc(i.get('item'))}</li>" for room, info in rooms.items()
+    rooms = coverage_rooms(coverage)
+    missing = [f"<li>{esc((info.get('room') or 'Unknown room').title())}: {esc(i.get('label') or i.get('item'))}</li>" for info in rooms
                for i in info.get("items", []) if i.get("status") == "not_seen"]
-    listing = f"<ul>{''.join(missing)}</ul>" if missing else (
+    listing = f"<p>Items not seen in the footage require inspector review.</p><ul>{''.join(missing)}</ul>" if missing else (
         "<p>No checklist items were recorded as not seen.</p>" if rooms else "")
     return f'<section><h2>Items not inspected</h2>{listing}<p class="limits">{LIMITATIONS}</p></section>'
 

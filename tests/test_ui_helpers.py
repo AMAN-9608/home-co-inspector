@@ -18,6 +18,21 @@ def test_chips():
     assert h.status_chip("weird_one")[0] == "Weird one"
 
 
+def test_review_label_shows_inspector_decision_and_model_status():
+    finding = {"id": "spoken-0", "status": "uncertain"}
+    state = {"items": {"spoken-0": {"decision": "accepted"}}}
+    assert h.review_label(finding, state) == "Accepted · Model: uncertain"
+    state["items"]["spoken-0"]["decision"] = "rejected"
+    assert h.review_label(finding, state) == "Rejected · Model: uncertain"
+    state["items"]["spoken-0"]["decision"] = "pending"
+    assert h.review_label(finding, state) == "Pending · Model: uncertain"
+
+
+def test_coverage_rooms_accepts_pipeline_list_and_preserves_duplicate_rooms():
+    rooms = [{"room": "Bathroom", "items": []}, {"room": "Bathroom", "items": []}]
+    assert h.coverage_rooms(rooms) == rooms
+
+
 def test_group_and_ai():
     fs = [{"room": "k", "t_start": 5}, {"room": None, "t_start": 1}, {"room": "k", "t_start": 2, "source": "unspoken"}]
     g = h.group_by_room(fs)

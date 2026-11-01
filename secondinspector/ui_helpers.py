@@ -41,6 +41,16 @@ def source_label(source: str) -> str:
     return SOURCE_LABELS.get(source, str(source))
 
 
+def review_label(finding, state):
+    decision = (state or {}).get("items", {}).get(finding["id"], {}).get("decision")
+    if not decision and finding.get("source") == "inspector":
+        decision = "accepted"
+    label = decision.capitalize() if decision else ""
+    if finding.get("status") and finding.get("source") != "inspector":
+        label += (" · " if label else "") + f"Model: {finding['status']}"
+    return label
+
+
 def group_by_room(findings: list[dict]) -> dict[str, list[dict]]:
     out: dict[str, list[dict]] = {}
     for f in findings:
@@ -93,3 +103,11 @@ def coverage_counts(items: list[dict]) -> dict[str, int]:
     for it in items:
         c[it.get("status", "?")] = c.get(it.get("status", "?"), 0) + 1
     return c
+
+
+def coverage_rooms(coverage):
+    if isinstance(coverage, list):
+        return coverage
+    return [{**info, "room": name} for name, info in (coverage or {}).get("rooms", {}).items()]
+
+

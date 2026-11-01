@@ -98,3 +98,18 @@ def test_save_load_roundtrip(out):
     path = review.save(out, state)
     assert path.name == "review.json" and not (out / "review.json.tmp").exists()
     assert review.load(out) == state
+
+
+def test_display_shows_edits_and_inspector_added_findings_can_be_changed(out):
+    state = review.load(out)
+    review.decide(state, "spoken-0", "edited", {"room": "garage", "description": "Updated"})
+    fid = review.add(state, {"description": "Added"})
+    shown = {f["id"]: f for f in review.display_findings(out, state)}
+    assert shown["spoken-0"]["description"] == "Updated"
+    assert shown["spoken-0"]["room"] == "garage"
+    review.decide(state, fid, "edited", {"description": "Revised"})
+    assert review.final_findings(out, state)[-1]["description"] == "Revised"
+    review.decide(state, fid, "rejected")
+    assert all(f["id"] != fid for f in review.final_findings(out, state))
+
+

@@ -47,7 +47,9 @@ For each candidate give:
 - defect_phrase: one concrete noun an object detector can find, e.g. "crack", "scuff", "stain", "gap".
 - t_start, t_end: when it is visible, in seconds from the start of the video.
 Include faint or ambiguous candidates; each one is checked again later. Skip uniform door clearance gaps,
-reflections and shadows. If nothing is visible, return an empty list."""
+reflections and shadows. Consider whether an apparent hole or gap is part of a normal fixture, such as a
+fire sprinkler, outlet, vent or fastener. Describe ambiguous features as uncertain. If nothing is visible,
+return an empty list."""
 
 MATCH_SCHEMA = {
     "type": "object",

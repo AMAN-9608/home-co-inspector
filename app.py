@@ -127,16 +127,17 @@ def room_status_page():
     if not cov:
         st.info("No coverage.json for this room yet (built by the coverage step).")
     else:
-        for room, info in cov.get("rooms", {}).items():
+        for info in h.coverage_rooms(cov):
+            room = info.get("room") or "Unknown room"
             items = info.get("items", [])
             counts = h.coverage_counts(items)
             summary = ", ".join(f"{n} {h.status_chip(s)[0].lower()}" for s, n in counts.items())
             with st.expander(f"{room} — {summary}", expanded=True):
                 for it in items:
                     c1, c2 = st.columns([3, 2])
-                    c1.write(it.get("item", "?"))
+                    c1.write(it.get("label") or it.get("item", "?"))
                     c2.markdown(chip(*h.status_chip(it.get("status"))), unsafe_allow_html=True)
-                    ev = h.resolve_path(it.get("evidence_path"), ROOT)
+                    ev = h.resolve_path((it.get("evidence") or {}).get("evidence_path") or it.get("evidence_path"), ROOT)
                     if ev:
                         c1.image(str(ev), width=220)
     st.subheader("Floor level")
@@ -161,7 +162,7 @@ def finding_card(f, state, pend):
         else:
             img.caption("No evidence frame")
         badge = chip(h.source_label(f.get("source")), "#e37400" if ai else "#1a73e8")
-        state_txt = "pending" if fid in pend else (f.get("status") or "")
+        state_txt = h.review_label(f, state)
         body.markdown(
             f'<div class="{"ai-card" if ai else "hu-card"}">{badge}'
             f'<b>{f.get("component_phrase") or ""} — {f.get("defect_phrase") or ""}</b>'
@@ -204,10 +205,7 @@ def finding_card(f, state, pend):
 def review_page():
     if review:
         state = get_state()
-        findings = list(review.candidates(out_dir))
-        known = {f["id"] for f in findings}
-        added = state.get("added", []) if isinstance(state, dict) else []
-        findings += [f for f in added if f.get("id") not in known]
+        findings = review.display_findings(out_dir, state)
         pend = set(review.pending(state))
     else:
         missing("review")

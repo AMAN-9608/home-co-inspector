@@ -43,6 +43,8 @@ def load(out_dir):
         "items": {}, "added": [], "signed_by": None, "signed_at": None}
     for finding in candidates(out_dir):
         state["items"].setdefault(finding["id"], blank_item())
+    for finding in state["added"]:
+        state["items"].setdefault(finding["id"], {**blank_item(), "decision": "accepted"})
     return state
 
 
@@ -75,6 +77,7 @@ def add(state, finding):
         n += 1
     new = normalize(finding, id=f"inspector-{n}", source="inspector")
     state["added"].append(new)
+    state["items"][new["id"]] = {**blank_item(), "decision": "accepted", "decided_at": now()}
     unsign(state)
     return new["id"]
 
@@ -95,13 +98,18 @@ def sign(state, name):
 
 def final_findings(out_dir, state):
     out = []
-    for finding in candidates(out_dir):
+    for finding in candidates(out_dir) + state["added"]:
         item = state["items"].get(finding["id"], blank_item())
         if item["decision"] == "accepted":
             out.append(finding)
         elif item["decision"] == "edited":
             out.append({**finding, **item["edits"]})
-    return out + [dict(f) for f in state["added"]]
+    return out
+
+
+def display_findings(out_dir, state):
+    findings = candidates(out_dir) + state["added"]
+    return [{**f, **(state["items"].get(f["id"], {}).get("edits") or {})} for f in findings]
 
 
 def save(out_dir, state):

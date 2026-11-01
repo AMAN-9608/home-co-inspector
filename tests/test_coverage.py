@@ -70,6 +70,18 @@ def test_status_order():
     assert coverage.status(seen=False, said=False, tested=False) == "not_seen"
 
 
+def test_expanded_checklist_separates_alarm_types_and_covers_planned_items():
+    items = {item.key: item for item in coverage.CHECKLIST}
+    assert set(items) == {"outlet", "gfci_outlet", "smoke_detector", "co_detector", "electrical_panel",
+                          "water_heater", "pressure_relief_valve", "window", "door", "sink", "toilet",
+                          "exhaust_fan", "ceiling"}
+    room = coverage.Room("bedroom", "bedroom", 0, 10)
+    assert coverage.mentions(items["co_detector"], room, [said(1, "carbon monoxide detector")])
+    assert not coverage.mentions(items["smoke_detector"], room, [said(1, "carbon monoxide detector")])
+    assert coverage.mentions(items["pressure_relief_valve"], room, [said(1, "TPR valve")])
+    assert "bathroom" in items["toilet"].rooms and "bedroom" not in items["toilet"].rooms
+
+
 def test_check_candidates_batches_and_fills_missing_answers(monkeypatch, tmp_path):
     image = tmp_path / "f.jpg"
     image.write_bytes(b"jpg")
