@@ -31,6 +31,15 @@ def frame_size(video):
     return int(width), int(height)
 
 
+def duration(video):
+    result = subprocess.run(
+        [ffmpeg_bin("ffprobe"), "-v", "error", "-show_entries", "format=duration",
+         "-of", "csv=p=0", str(video)],
+        check=True, capture_output=True, text=True,
+    )
+    return float(result.stdout.strip())
+
+
 def make_proxy(source, target, fps=2):
     target = Path(target)
     target.parent.mkdir(parents=True, exist_ok=True)

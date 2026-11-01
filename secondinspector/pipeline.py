@@ -6,7 +6,7 @@ import shutil
 from dataclasses import asdict
 from pathlib import Path
 
-from secondinspector import align, api, asr, media, observations, sam, verify
+from secondinspector import align, api, asr, coverage, media, observations, sam, verify
 
 # A box covering most of the frame ("wall", "door") does not localise anything useful.
 MAX_BOX_FRACTION = 0.4
@@ -40,7 +40,7 @@ UNSPOKEN_SCHEMA = {
 
 UNSPOKEN_PROMPT = """Act as a home inspector's second pair of eyes reviewing this walkthrough video.
 List visible candidates for human review: cracks, separations at trim joints, gaps, scuffs, stains,
-discoloured patches, rust, holes or damage on walls, doors, trim, floors and ceilings.
+water marks, discoloured patches, rust, holes or damage on walls, doors, trim, floors and ceilings.
 For each candidate give:
 - description: what is visible and where, without declaring a defect.
 - component_phrase: the component as a 1-3 word concrete noun phrase, e.g. "door trim", "wall", "hinge".
@@ -178,7 +178,7 @@ def spoken_matches(spark, spoken, candidates):
     }
 
 
-async def run(clip, out_root="data/processed"):
+async def run(clip, out_root="data/processed", room=None):
     clip = Path(clip)
     out = Path(out_root) / clip.stem
     shutil.rmtree(out / "evidence", ignore_errors=True)
@@ -205,13 +205,21 @@ async def run(clip, out_root="data/processed"):
             ),
         )
         (out / "observations.json").write_text(json.dumps([asdict(o) for o in observed], indent=2) + "\n")
+        rooms = coverage.rooms_from(observed, media.duration(proxy), room)
         defects = [{**asdict(o), "source": "spoken"} for o in observed if o.kind == "defect"]
-        room = defects[0]["room"] if defects else ""
-        reviewed = [{**c, "room": room, "utterance": "", "source": "unspoken"} for c in review["candidates"]]
-        found = await asyncio.gather(
-            *(inspector.find_evidence(item, f"spoken-{i}") for i, item in enumerate(defects)),
-            *(inspector.find_evidence(item, f"unspoken-{i}") for i, item in enumerate(reviewed)),
+        reviewed = [
+            {**c, "room": coverage.room_at(rooms, c["t_start"]).name, "utterance": "", "source": "unspoken"}
+            for c in review["candidates"]
+        ]
+        # The coverage check shares the SAM cache with the defect search and runs alongside it.
+        found, covered_rooms = await asyncio.gather(
+            asyncio.gather(
+                *(inspector.find_evidence(item, f"spoken-{i}") for i, item in enumerate(defects)),
+                *(inspector.find_evidence(item, f"unspoken-{i}") for i, item in enumerate(reviewed)),
+            ),
+            coverage.check(inspector, observed, rooms),
         )
+    (out / "coverage.json").write_text(json.dumps(covered_rooms, indent=2) + "\n")
     spoken, candidates = list(found[: len(defects)]), list(found[len(defects):])
 
     visible = [c for c in candidates if c["status"] != "not_visible" and not covered(c, spoken)]
@@ -225,6 +233,7 @@ async def run(clip, out_root="data/processed"):
         "spoken": spoken,
         "unspoken": unspoken,
         "unspoken_covered_or_rejected": [c for c in candidates if c not in unspoken],
+        "coverage": covered_rooms,
     }
     (out / "findings.json").write_text(json.dumps(findings, indent=2) + "\n")
     return findings
@@ -234,8 +243,9 @@ def main():
     parser = argparse.ArgumentParser(description="Narration-guided Spark + SAM inspection pass")
     parser.add_argument("clip")
     parser.add_argument("--out", default="data/processed")
+    parser.add_argument("--room", help="treat the whole clip as this room, e.g. bedroom, instead of using narration")
     args = parser.parse_args()
-    findings = asyncio.run(run(args.clip, args.out))
+    findings = asyncio.run(run(args.clip, args.out, args.room))
     for finding in findings["spoken"] + findings["unspoken"]:
         print(
             f"[{finding['source']:8}] {finding['t_start']:5.1f}-{finding['t_end']:5.1f}s "
@@ -243,7 +253,21 @@ def main():
             f"{finding['utterance'] or finding['description'][:80]}"
         )
         print(f"           evidence: {finding['evidence_path']}")
+    print_coverage(findings["coverage"])
     print(f"Wrote {Path(args.out) / Path(args.clip).stem / 'findings.json'}")
+
+
+def print_coverage(rooms):
+    print("\nCoverage")
+    for room in rooms:
+        print(f"  {room['room'] or 'unknown room'} ({room['type']}) {room['t_start']:.1f}-{room['t_end']:.1f}s")
+        for item in room["items"]:
+            needed = "required" if item["expected"] else ""
+            evidence = item["evidence"]["evidence_path"] if item["evidence"] else ""
+            print(f"    {item['status']:19} {item['label']:18} {needed:8} {evidence}")
+        for flag in room["gfci_flags"]:
+            print(f"    gfci_flag           frame {flag['frame']:3} {flag['note']}")
+            print(f"                        evidence: {flag['evidence_path']}")
 
 
 if __name__ == "__main__":
