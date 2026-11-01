@@ -1,0 +1,104 @@
+{
+  "readings": [
+    {
+      "room": "Kitchen",
+      "spot": "sink",
+      "t": "2026-11-01T10:00:00Z",
+      "pitch_deg": 0.1,
+      "roll_deg": -0.05,
+      "samples": 60
+    },
+    {
+      "room": "Kitchen",
+      "spot": "fridge",
+      "t": "2026-11-01T10:01:00Z",
+      "pitch_deg": 0.6,
+      "roll_deg": 0.4,
+      "samples": 60
+    },
+    {
+      "room": "Kitchen",
+      "spot": "center",
+      "t": "2026-11-01T10:02:00Z",
+      "pitch_deg": 0.2,
+      "roll_deg": 0.1,
+      "samples": 60
+    },
+    {
+      "room": "Living room",
+      "spot": "window",
+      "t": "2026-11-01T10:05:00Z",
+      "pitch_deg": -0.3,
+      "roll_deg": 0.0,
+      "samples": 58
+    },
+    {
+      "room": "Living room",
+      "spot": "east wall",
+      "t": "2026-11-01T10:06:00Z",
+      "pitch_deg": 0.0,
+      "roll_deg": -0.9,
+      "samples": 61
+    }
+  ],
+  "findings": [
+    {
+      "id": "level-kitchen-fridge",
+      "source": "sensor",
+      "room": "Kitchen",
+      "sop_section": "Structure",
+      "component_phrase": "floor",
+      "defect_phrase": "out of level",
+      "description": "Floor at fridge slopes 0.72 deg (1.51 in per 10 ft), over the 0.45 deg threshold. Recheck with a level and consider structural evaluation.",
+      "utterance": "",
+      "t_start": null,
+      "t_end": null,
+      "frame": null,
+      "box": null,
+      "status": "measured",
+      "evidence_path": "data\\processed\\garage_door_video\\level-kitchen.svg",
+      "measurement": {
+        "slope_deg": 0.721,
+        "in_per_10ft": 1.51,
+        "mm_per_m": 12.59,
+        "downhill_deg": 146.3,
+        "threshold_deg": 0.45,
+        "over_threshold": true
+      }
+    },
+    {
+      "id": "level-living-room-east-wall",
+      "source": "sensor",
+      "room": "Living room",
+      "sop_section": "Structure",
+      "component_phrase": "floor",
+      "defect_phrase": "out of level",
+      "description": "Floor at east wall slopes 0.90 deg (1.89 in per 10 ft), over the 0.45 deg threshold. Recheck with a level and consider structural evaluation.",
+      "utterance": "",
+      "t_start": null,
+      "t_end": null,
+      "frame": null,
+      "box": null,
+      "status": "measured",
+      "evidence_path": "data\\processed\\garage_door_video\\level-living-room.svg",
+      "measurement": {
+        "slope_deg": 0.9,
+        "in_per_10ft": 1.885,
+        "mm_per_m": 15.71,
+        "downhill_deg": 270.0,
+        "threshold_deg": 0.45,
+        "over_threshold": true
+      }
+    }
+  ],
+  "rooms": {
+    "Kitchen": {
+      "max_slope_deg": 0.721,
+      "svg": "data\\processed\\garage_door_video\\level-kitchen.svg"
+    },
+    "Living room": {
+      "max_slope_deg": 0.9,
+      "svg": "data\\processed\\garage_door_video\\level-living-room.svg"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+[
+  {"room": "Kitchen", "spot": "sink", "t": "2026-11-01T10:00:00Z", "pitch_deg": 0.1, "roll_deg": -0.05, "samples": 60},
+  {"room": "Kitchen", "spot": "fridge", "t": "2026-11-01T10:01:00Z", "pitch_deg": 0.6, "roll_deg": 0.4, "samples": 60},
+  {"room": "Kitchen", "spot": "center", "t": "2026-11-01T10:02:00Z", "pitch_deg": 0.2, "roll_deg": 0.1, "samples": 60},
+  {"room": "Living room", "spot": "window", "t": "2026-11-01T10:05:00Z", "pitch_deg": -0.3, "roll_deg": 0.0, "samples": 58},
+  {"room": "Living room", "spot": "east wall", "t": "2026-11-01T10:06:00Z", "pitch_deg": 0.0, "roll_deg": -0.9, "samples": 61}
+]
