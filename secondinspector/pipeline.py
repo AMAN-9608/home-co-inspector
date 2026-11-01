@@ -12,6 +12,7 @@ from secondinspector import align, api, asr, coverage, media, observations, sam,
 MAX_BOX_FRACTION = 0.4
 # More parallel SAM streams than this started timing out.
 SAM_CONCURRENCY = 2
+SAM_ATTEMPTS = 3
 
 UNSPOKEN_SCHEMA = {
     "type": "object",
@@ -47,7 +48,8 @@ For each candidate give:
 - defect_phrase: one concrete noun an object detector can find, e.g. "crack", "scuff", "stain", "gap".
 - t_start, t_end: when it is visible, in seconds from the start of the video.
 Include faint or ambiguous candidates; each one is checked again later. Skip uniform door clearance gaps,
-reflections and shadows. If nothing is visible, return an empty list."""
+reflections and shadows, and anything that is not part of the building: rugs, mats, furniture, shoes and
+other belongings. If nothing is visible, return an empty list."""
 
 MATCH_SCHEMA = {
     "type": "object",
@@ -100,9 +102,16 @@ class Inspector:
 
     async def segment(self, phrase):
         async with self.sam_slots:
-            return await sam.run_concept(
-                self.client, self.file_id, phrase, self.sam_dir, video_key=self.video_key
-            )
+            # SAM streams sometimes drop mid-response; one reset should not sink the whole clip.
+            for attempt in range(SAM_ATTEMPTS):
+                try:
+                    return await sam.run_concept(
+                        self.client, self.file_id, phrase, self.sam_dir, video_key=self.video_key
+                    )
+                except Exception:
+                    if attempt == SAM_ATTEMPTS - 1:
+                        raise
+                    await asyncio.sleep(2 ** attempt)
 
     async def find_evidence(self, item, stem):
         """Try the defect phrase, then the component phrase; keep the first box Spark agrees with."""
