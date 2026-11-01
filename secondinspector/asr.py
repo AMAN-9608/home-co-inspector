@@ -10,6 +10,8 @@ KEYWORDS = [
     "trim", "casing", "miter", "jamb", "hinge", "baseboard", "drywall",
     "hairline", "crack", "scuff", "stain", "gap", "caulk", "GFCI",
     "efflorescence", "flashing", "water heater", "smoke detector",
+    "smoke alarm", "ground fault", "exhaust fan", "electrical panel", "breaker",
+    "bedroom", "bathroom",
 ]
 
 

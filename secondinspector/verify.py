@@ -49,15 +49,18 @@ def render(video, frames, box, out_dir, stem):
     return paths
 
 
+def image_part(image):
+    data = base64.b64encode(Path(image).read_bytes()).decode("ascii")
+    return {"type": "input_image", "image_url": f"data:image/jpeg;base64,{data}"}
+
+
 def check(client, claim, images, boxed):
     box_note = (
         "Each image has a red box where an object detector found it." if boxed else
         "No detector box is available; look at the whole image."
     )
     content = [{"type": "input_text", "text": PROMPT.format(claim=claim, box_note=box_note)}]
-    for image in images:
-        data = base64.b64encode(Path(image).read_bytes()).decode("ascii")
-        content.append({"type": "input_image", "image_url": f"data:image/jpeg;base64,{data}"})
+    content += [image_part(image) for image in images]
     result = spark_json(client, content, SCHEMA, "evidence_check")
     result["best_image"] = min(max(result["best_image"], 0), len(images) - 1)
     return result
