@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Floor Level</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f6f6f4; color: #222; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  #msg { padding: 8px; border-radius: 6px; background: #fff3cd; margin-bottom: 10px; }
+  #msg.ok { background: #d4edda; }
+  .vial { position: relative; width: 220px; height: 220px; margin: 10px auto; border-radius: 50%;
+          background: #e8f3e0; border: 3px solid #556; }
+  .vial::before, .vial::after { content: ""; position: absolute; background: #889; }
+  .vial::before { left: 50%; top: 0; bottom: 0; width: 1px; }
+  .vial::after { top: 50%; left: 0; right: 0; height: 1px; }
+  .ring { position: absolute; left: 90px; top: 90px; width: 40px; height: 40px; border: 1px dashed #556; border-radius: 50%; }
+  #bubble { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: rgba(60,140,220,.8);
+            left: 95px; top: 95px; }
+  #vals { text-align: center; font-size: 18px; font-variant-numeric: tabular-nums; }
+  label { display: block; margin-top: 8px; font-size: 14px; }
+  input { width: 100%; box-sizing: border-box; padding: 8px; font-size: 16px; }
+  button { padding: 12px; font-size: 16px; margin: 8px 4px 0 0; border-radius: 6px; border: 1px solid #556; background: #fff; }
+  button.primary { background: #2a6fd6; color: #fff; border-color: #2a6fd6; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+  td, th { border-bottom: 1px solid #ccc; padding: 4px; text-align: left; }
+</style>
+</head>
+<body>
+<h1>Floor level</h1>
+<div id="msg">Tap "Start sensor" to begin.</div>
+<button class="primary" id="start">Start sensor</button>
+<div class="vial"><div class="ring"></div><div id="bubble"></div></div>
+<div id="vals">pitch -- &deg; &nbsp; roll -- &deg;</div>
+<div id="cal">offset: pitch 0.00&deg;, roll 0.00&deg;</div>
+<label>Room <input id="room" value="Kitchen"></label>
+<label>Spot <input id="spot" placeholder="e.g. by fridge"></label>
+<button id="calZero">Calibrate (flat reference)</button>
+<button id="calFlip">Flip calibrate</button>
+<button class="primary" id="record">Record</button>
+<button id="download">Download JSON</button>
+<table><thead><tr><th>Room</th><th>Spot</th><th>Pitch</th><th>Roll</th><th>n</th></tr></thead><tbody id="rows"></tbody></table>
+<script>
+const $ = id => document.getElementById(id);
+let latest = null, offset = {p: 0, r: 0}, flipFirst = null, readings = [];
+const msg = (t, ok) => { $("msg").textContent = t; $("msg").className = ok ? "ok" : ""; };
+
+function onOrient(e) {
+  if (e.beta == null || e.gamma == null) return;
+  latest = {p: e.beta, r: e.gamma};
+  const p = e.beta - offset.p, r = e.gamma - offset.r;
+  $("vals").innerHTML = `pitch ${p.toFixed(2)}&deg; &nbsp; roll ${r.toFixed(2)}&deg;`;
+  const k = 20, clamp = v => Math.max(-95, Math.min(95, v));
+  // Bubble floats to the high side.
+  $("bubble").style.left = (95 - clamp(r * k)) + "px";
+  $("bubble").style.top = (95 + clamp(p * k)) + "px";
+}
+
+async function start() {
+  if (typeof DeviceOrientationEvent === "undefined") return msg("No motion sensor API in this browser. Use a phone over HTTPS.");
+  if (!window.isSecureContext) msg("Not HTTPS: iOS will block the sensor. Use a cloudflared tunnel.");
+  if (typeof DeviceOrientationEvent.requestPermission === "function") {
+    try {
+      if (await DeviceOrientationEvent.requestPermission() !== "granted") return msg("Motion permission denied.");
+    } catch (err) { return msg("Permission request failed: " + err.message); }
+  }
+  window.addEventListener("deviceorientation", onOrient);
+  msg("Waiting for sensor...");
+  setTimeout(() => latest ? msg("Sensor live. Lay the phone flat and tap Record.", true)
+                          : msg("No sensor readings received (desktop browser?). Use a phone."), 1500);
+}
+
+function sample(ms = 1000) {
+  return new Promise((resolve, reject) => {
+    const got = [];
+    const h = e => { if (e.beta != null) got.push([e.beta, e.gamma]); };
+    window.addEventListener("deviceorientation", h);
+    setTimeout(() => {
+      window.removeEventListener("deviceorientation", h);
+      if (!got.length) return reject(new Error("No sensor samples. Tap Start sensor on a phone."));
+      const avg = i => got.reduce((s, g) => s + g[i], 0) / got.length;
+      resolve({p: avg(0), r: avg(1), n: got.length});
+    }, ms);
+  });
+}
+
+async function calZero() {
+  try { const s = await sample(); offset = {p: s.p, r: s.r}; showCal(); msg("Zero set from flat reference.", true); }
+  catch (e) { msg(e.message); }
+}
+
+async function calFlip() {
+  try {
+    const s = await sample();
+    if (!flipFirst) { flipFirst = s; return msg("Now rotate the phone 180° on the same spot and tap Flip calibrate again."); }
+    // Sensor bias is the mean of the two readings; true tilt cancels when rotated 180 degrees.
+    offset = {p: (flipFirst.p + s.p) / 2, r: (flipFirst.r + s.r) / 2};
+    flipFirst = null; showCal(); msg("Flip calibration done.", true);
+  } catch (e) { msg(e.message); }
+}
+
+const showCal = () => $("cal").innerHTML = `offset: pitch ${offset.p.toFixed(2)}&deg;, roll ${offset.r.toFixed(2)}&deg;`;
+
+async function record() {
+  try {
+    msg("Recording 1 s... keep still.");
+    const s = await sample();
+    const rd = {room: $("room").value.trim(), spot: $("spot").value.trim(), t: new Date().toISOString(),
+                pitch_deg: +(s.p - offset.p).toFixed(3), roll_deg: +(s.r - offset.r).toFixed(3), samples: s.n};
+    readings.push(rd); render();
+    let saved = "saved locally";
+    if (location.protocol.startsWith("http")) {
+      try {
+        const res = await fetch("/readings", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(rd)});
+        if (res.ok) saved = "saved to server";
+      } catch (_) {}
+    }
+    msg(`Recorded ${rd.spot || "spot"} (${saved}).`, true);
+  } catch (e) { msg(e.message); }
+}
+
+function render() {
+  $("rows").innerHTML = readings.map(r =>
+    `<tr><td>${esc(r.room)}</td><td>${esc(r.spot)}</td><td>${r.pitch_deg.toFixed(2)}</td><td>${r.roll_deg.toFixed(2)}</td><td>${r.samples}</td></tr>`).join("");
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+
+function download() {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(readings, null, 2)], {type: "application/json"}));
+  a.download = "level_readings.json"; a.click();
+}
+
+$("start").onclick = start; $("calZero").onclick = calZero; $("calFlip").onclick = calFlip;
+$("record").onclick = record; $("download").onclick = download;
+</script>
+</body>
+</html>
