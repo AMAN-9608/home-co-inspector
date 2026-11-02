@@ -7,3 +7,8 @@ __pycache__/
 .ruff_cache/
 
 *.md
+.ignore
+
+.DS_Store
+data/
+*.pdf
