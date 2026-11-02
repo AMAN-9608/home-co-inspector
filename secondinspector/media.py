@@ -71,6 +71,19 @@ def extract_frame(video, frame_index, target, fps=2):
     return target
 
 
+def crop(image, box, frame_size, target, pad=0.6):
+    """Cut out the box plus `pad` of its size on every side, kept inside the frame."""
+    left, top, right, bottom = box
+    width, height = frame_size
+    dx, dy = (right - left) * pad, (bottom - top) * pad
+    x0, y0 = max(0, int(left - dx)), max(0, int(top - dy))
+    x1, y1 = min(width, int(right + dx)), min(height, int(bottom + dy))
+    target = Path(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    run_ffmpeg("-i", image, "-vf", f"crop={x1 - x0}:{y1 - y0}:{x0}:{y0}", "-q:v", "2", target)
+    return target
+
+
 def draw_box(image, box, target, color="red"):
     left, top, right, bottom = box
     target = Path(target)

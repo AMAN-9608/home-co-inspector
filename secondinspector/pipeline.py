@@ -6,7 +6,17 @@ import shutil
 from dataclasses import asdict
 from pathlib import Path
 
-from secondinspector import align, api, asr, coverage, media, observations, sam, verify
+from secondinspector import (
+    alarm,
+    align,
+    api,
+    asr,
+    coverage,
+    media,
+    observations,
+    sam,
+    verify,
+)
 
 # A box covering most of the frame ("wall", "door") does not localise anything useful.
 MAX_BOX_FRACTION = 0.4
@@ -250,6 +260,7 @@ async def run(clip, out_root="data/processed", room=None):
             ),
             coverage.check(inspector, observed, rooms),
         )
+        await alarm.audit_rooms(inspector, client, clip, covered_rooms)
     spoken, candidates = list(found[: len(defects)]), list(found[len(defects):])
 
     visible = [c for c in candidates if c["status"] != "not_visible" and not covered(c, spoken)]
@@ -297,6 +308,11 @@ def print_coverage(rooms):
             needed = "required" if item["expected"] else ""
             evidence = item["evidence"]["evidence_path"] if item["evidence"] else ""
             print(f"    {item['status']:19} {item['label']:18} {needed:8} {evidence}")
+            if item.get("test_audit"):
+                tests = ", ".join(f"{t['test']} {t['status']}" for t in item["test_audit"]["tests"])
+                print(f"                        test audit ({item['test_audit']['procedure_source']}): {tests}")
+                if item["test_audit"]["disclaimer"]:
+                    print(f"                        note: {item['test_audit']['disclaimer']}")
         for flag in room["gfci_flags"]:
             print(f"    gfci_flag           frame {flag['frame']:3} {flag['note']}")
             print(f"                        evidence: {flag['evidence_path']}")
