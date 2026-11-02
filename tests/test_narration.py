@@ -100,3 +100,78 @@ def test_candidate_on_the_same_track_or_spot_counts_as_spoken():
     assert pipeline.covered(finding(15.0, 22.5, [400, 420, 480, 500]), spoken)
     assert not pipeline.covered(finding(30.0, 33.0, [400, 420, 480, 500]), spoken)
     assert not pipeline.covered(finding(15.0, 22.5, [0, 0, 100, 100]), spoken)
+
+
+def fake_run_setup(monkeypatch, tmp_path, fail=False):
+    import asyncio
+    from contextlib import asynccontextmanager
+
+    observed = [observations.Observation("t1", "defect", "hall", "trim", "crack", "", "Interior",
+                                         "crack on the trim", 1.0, 2.0)]
+
+    @asynccontextmanager
+    async def fake_client():
+        yield None
+
+    async def fake_upload(client, path):
+        return "file-1"
+
+    async def fake_evidence(self, item, stem):
+        image = self.evidence_dir / f"{stem}.jpg"
+        image.parent.mkdir(parents=True, exist_ok=True)
+        image.write_bytes(b"new")
+        if fail:
+            raise RuntimeError("SAM stream dropped")
+        return {**item, "status": "confirmed", "box": None, "sam_phrase": None, "sam_object_id": None,
+                "evidence_path": str(image)}
+
+    monkeypatch.setattr(pipeline.media, "make_proxy", lambda clip, target: target)
+    monkeypatch.setattr(pipeline.media, "make_wav", lambda clip, target: target)
+    monkeypatch.setattr(pipeline.media, "frame_size", lambda video: (720, 1280))
+    monkeypatch.setattr(pipeline.asr, "transcribe", lambda wav: {"turns": [], "transcript": ""})
+    monkeypatch.setattr(pipeline.api, "sync_client", lambda: None)
+    monkeypatch.setattr(pipeline.api, "async_client", fake_client)
+    monkeypatch.setattr(pipeline.api, "spark_json", lambda *args: {"candidates": []})
+    monkeypatch.setattr(pipeline.sam, "upload_video", fake_upload)
+    monkeypatch.setattr(pipeline.observations, "extract", lambda spark, turns: observed)
+    monkeypatch.setattr(pipeline.Inspector, "find_evidence", fake_evidence)
+    out = tmp_path / "out" / "walk"
+    (out / "evidence").mkdir(parents=True)
+    (out / "evidence" / "spoken-0.jpg").write_bytes(b"old")
+    (out / "findings.json").write_text('{"old": true}')
+    (out / "proxy.mp4").write_bytes(b"mp4")
+    return asyncio, out
+
+
+def test_a_failed_rerun_keeps_the_last_good_evidence_and_findings(monkeypatch, tmp_path):
+    asyncio, out = fake_run_setup(monkeypatch, tmp_path, fail=True)
+    try:
+        asyncio.run(pipeline.run(tmp_path / "walk.mp4", tmp_path / "out"))
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("run should have failed")
+    assert (out / "evidence" / "spoken-0.jpg").read_bytes() == b"old"
+    assert json.loads((out / "findings.json").read_text()) == {"old": True}
+
+
+def test_a_successful_run_swaps_in_new_evidence_and_points_findings_at_it(monkeypatch, tmp_path):
+    asyncio, out = fake_run_setup(monkeypatch, tmp_path)
+    (out / "evidence.partial").mkdir()
+    (out / "evidence.partial" / "stale.jpg").write_bytes(b"left by a crashed run")
+
+    findings = asyncio.run(pipeline.run(tmp_path / "walk.mp4", tmp_path / "out"))
+
+    assert (out / "evidence" / "spoken-0.jpg").read_bytes() == b"new"
+    assert not (out / "evidence" / "stale.jpg").exists()
+    assert not (out / "evidence.partial").exists()
+    path = findings["spoken"][0]["evidence_path"]
+    assert path == str(out / "evidence" / "spoken-0.jpg")
+    assert json.loads((out / "findings.json").read_text())["spoken"][0]["evidence_path"] == path
+
+
+def test_relocate_rewrites_only_paths_under_the_old_folder():
+    document = {"a": ["/x/evidence.partial/1.jpg", "/y/other.jpg"], "b": {"c": "/x/evidence.partial/2.jpg"}, "n": 3}
+    assert pipeline.relocate(document, "/x/evidence.partial", "/x/evidence") == {
+        "a": ["/x/evidence/1.jpg", "/y/other.jpg"], "b": {"c": "/x/evidence/2.jpg"}, "n": 3,
+    }
