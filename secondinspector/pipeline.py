@@ -288,6 +288,8 @@ def print_coverage(rooms):
             if item.get("test_audit"):
                 tests = ", ".join(f"{t['test']} {t['status']}" for t in item["test_audit"]["tests"])
                 print(f"                        test audit ({item['test_audit']['procedure_source']}): {tests}")
+                if item["test_audit"]["disclaimer"]:
+                    print(f"                        note: {item['test_audit']['disclaimer']}")
         for flag in room["gfci_flags"]:
             print(f"    gfci_flag           frame {flag['frame']:3} {flag['note']}")
             print(f"                        evidence: {flag['evidence_path']}")

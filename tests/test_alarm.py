@@ -254,9 +254,18 @@ def test_audit_rooms_audits_only_the_rooms_window_and_marks_it_tested(monkeypatc
     assert audited == [events[1:]]
     assert item["status"] == "tested"
     assert item["test_audit"]["manual_url"] == PROCEDURE["source_url"]
+    assert "Model number not readable" in item["test_audit"]["disclaimer"]
 
 
 def test_audited_status():
     assert alarm.audited_status({"exhaustive": True, "tests": []}) == "tested"
     assert alarm.audited_status({"exhaustive": False, "tests": [{"status": "partial"}]}) == "test_incomplete"
     assert alarm.audited_status({"exhaustive": False, "tests": [{"status": "not_done"}]}) is None
+
+
+def test_disclaimer_explains_an_inferred_model_or_an_unverified_procedure():
+    note = alarm.disclaimer(DEVICE, PROCEDURE)
+    assert "Model number not readable" in note
+    assert "30CUAR-VCA" in note and "Kidde, smoke + co, voice" in note
+    assert alarm.disclaimer({**DEVICE, "model": "30CUAR-VCA"}, PROCEDURE) == ""
+    assert "unverified" in alarm.disclaimer(DEVICE, {**PROCEDURE, "source": "spark_knowledge"})

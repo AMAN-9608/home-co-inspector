@@ -315,6 +315,20 @@ def audit(spark, procedure, events):
     }
 
 
+def disclaimer(device, procedure):
+    """What the reader must know about where the procedure came from; "" when the model was read and matched."""
+    if procedure["source"] != "manual":
+        return ("No manufacturer manual was found; the expected test is Spark's general knowledge for this kind of "
+                "alarm and is unverified. Confirm against the alarm's own manual.")
+    if device["model"].lower() == "unknown":
+        matched = ", ".join(x for x in (device["brand"], device["kind"].replace("_", " + "),
+                                        "voice" if device["voice"] == "yes" else "") if x and x != "unknown")
+        return (f"Model number not readable on the label. The expected test comes from the manual for "
+                f"{procedure['manual_models'] or 'a similar model'}, matched by {matched}. "
+                "Confirm the model on the alarm's label.")
+    return ""
+
+
 def in_window(events, t_start, t_end, slack=2.0):
     return [e for e in events if e["t_end"] >= t_start - slack and e["t_start"] <= t_end + slack]
 
@@ -345,6 +359,7 @@ async def audit_rooms(inspector, client, clip, rooms, manuals_dir="data/manuals"
             "device": device,
             "procedure_source": entry["procedure"]["source"],
             "manual_url": entry["procedure"]["source_url"],
+            "disclaimer": disclaimer(device, entry["procedure"]),
             "events": mine,
             **outcome,
         }
@@ -377,6 +392,7 @@ async def run(clips, out_root="data/processed", manuals_dir="data/manuals"):
             "views": views,
             "manual": entry["manual"],
             "procedure": entry["procedure"],
+            "disclaimer": disclaimer(device, entry["procedure"]),
             "events": clip_events,
             "audit": clip_audit,
         }
@@ -392,6 +408,8 @@ def print_result(result):
           f"voice {device['voice']}, confidence {device['confidence']})")
     source = procedure["source_url"] or "Spark knowledge (unverified, no manual found)"
     print(f"  procedure: {procedure['manual_models'] or '-'} from {source}")
+    if result["disclaimer"]:
+        print(f"  note: {result['disclaimer']}")
     print(f"  button pressed: {'yes' if outcome['pressed'] else 'no'}")
     for test in outcome["tests"]:
         when = f"{test['t_start']:.1f}-{test['t_end']:.1f}s" if test["t_start"] >= 0 else ""
