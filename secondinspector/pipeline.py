@@ -197,10 +197,31 @@ def spoken_matches(spark, spoken, candidates):
     }
 
 
+def relocate(value, old, new):
+    """Point every saved path under `old` at `new` instead."""
+    if isinstance(value, dict):
+        return {key: relocate(item, old, new) for key, item in value.items()}
+    if isinstance(value, list):
+        return [relocate(item, old, new) for item in value]
+    if isinstance(value, str) and value.startswith(old):
+        return new + value[len(old):]
+    return value
+
+
+def publish(staging, final, document):
+    """Swap the new evidence in only once the run has succeeded, and point the document's paths at it."""
+    shutil.rmtree(final, ignore_errors=True)
+    if staging.exists():
+        staging.rename(final)
+    return relocate(document, str(staging), str(final))
+
+
 async def run(clip, out_root="data/processed", room=None):
     clip = Path(clip)
     out = Path(out_root) / clip.stem
-    shutil.rmtree(out / "evidence", ignore_errors=True)
+    # New evidence goes to a staging folder so a failed run leaves the last good evidence and findings intact.
+    staging = out / "evidence.partial"
+    shutil.rmtree(staging, ignore_errors=True)
     proxy = media.make_proxy(clip, out / "proxy.mp4")
     wav = media.make_wav(clip, out / "audio.wav")
 
@@ -212,6 +233,7 @@ async def run(clip, out_root="data/processed", room=None):
     async with api.async_client() as client:
         file_id = await sam.upload_video(client, proxy)
         inspector = Inspector(client, spark, file_id, proxy, out)
+        inspector.evidence_dir = staging
         # Narration parsing and the silent video review do not depend on each other.
         observed, review = await asyncio.gather(
             asyncio.to_thread(observations.extract, spark, turns),
@@ -239,7 +261,6 @@ async def run(clip, out_root="data/processed", room=None):
             coverage.check(inspector, observed, rooms),
         )
         await alarm.audit_rooms(inspector, client, clip, covered_rooms)
-    (out / "coverage.json").write_text(json.dumps(covered_rooms, indent=2) + "\n")
     spoken, candidates = list(found[: len(defects)]), list(found[len(defects):])
 
     visible = [c for c in candidates if c["status"] != "not_visible" and not covered(c, spoken)]
@@ -255,6 +276,8 @@ async def run(clip, out_root="data/processed", room=None):
         "unspoken_covered_or_rejected": [c for c in candidates if c not in unspoken],
         "coverage": covered_rooms,
     }
+    findings = publish(staging, out / "evidence", findings)
+    (out / "coverage.json").write_text(json.dumps(findings["coverage"], indent=2) + "\n")
     (out / "findings.json").write_text(json.dumps(findings, indent=2) + "\n")
     return findings
 
