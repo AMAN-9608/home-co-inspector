@@ -2,6 +2,7 @@ import argparse
 import base64
 import html
 import json
+import mimetypes
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +15,7 @@ BADGES = {"spoken": "Spoken", "unspoken": "AI-detected", "sensor": "Sensor", "in
 COVERAGE_LABELS = {
     "inspected": "Inspected", "tested": "Tested",
     "seen_not_mentioned": "Seen, not mentioned", "not_seen": "Not seen",
+    "mentioned_not_seen": "Mentioned, not seen",
 }
 UNCONFIRMED = "AI finding — not yet confirmed by inspector"
 LIMITATIONS = (
@@ -85,7 +87,7 @@ def image_tag(path, out_dir, alt):
     found = resolve_image(path, out_dir)
     if not found:
         return '<div class="noimg">No evidence image</div>'
-    mime = "image/png" if found.suffix.lower() == ".png" else "image/jpeg"
+    mime = mimetypes.guess_type(found.name)[0] or "application/octet-stream"
     data = base64.b64encode(found.read_bytes()).decode()
     return f'<img src="data:{mime};base64,{data}" alt="{esc(alt)}">'
 
@@ -160,8 +162,16 @@ def level_section(level):
     return "".join(parts) + "</section>"
 
 
+def coverage_rooms(coverage):
+    if isinstance(coverage, list):
+        return {entry.get("room") or "Unspecified": {**entry, "items": [
+            {**item, "item": item.get("label") or item.get("item")}
+            for item in entry.get("items", [])]} for entry in coverage}
+    return (coverage or {}).get("rooms") or {}
+
+
 def coverage_section(coverage):
-    rooms = (coverage or {}).get("rooms") or {}
+    rooms = coverage_rooms(coverage)
     if not rooms:
         return ""
     rows = [f'<tr><td>{esc(room.title())}</td><td>{esc(i.get("item"))}</td>'
@@ -172,7 +182,7 @@ def coverage_section(coverage):
 
 
 def not_inspected_section(coverage):
-    rooms = (coverage or {}).get("rooms") or {}
+    rooms = coverage_rooms(coverage)
     missing = [f"<li>{esc(room.title())}: {esc(i.get('item'))}</li>" for room, info in rooms.items()
                for i in info.get("items", []) if i.get("status") == "not_seen"]
     listing = f"<ul>{''.join(missing)}</ul>" if missing else (
@@ -194,53 +204,61 @@ def signature(review):
 CSS = """
 body{font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1f2933;background:#fff;margin:0}
 main{max-width:900px;margin:0 auto;padding:32px 24px}
-header{border-bottom:3px solid #1f4e79;padding-bottom:16px;margin-bottom:8px}
-header h1{margin:0;color:#1f4e79;font-size:28px}
+header{border-bottom:3px solid #254e3c;padding-bottom:16px;margin-bottom:8px}
+header h1{margin:0;color:#254e3c;font-size:28px}
 .prop{color:#52606d;margin:4px 0}
 .draft,.signed{display:inline-block;margin-top:8px;padding:6px 12px;border-radius:4px;font-weight:600}
 .draft{background:#fdecea;color:#b3261e;border:1px solid #f5c2bd}
 .signed{background:#e6f4ea;color:#1e6b34;border:1px solid #b7dfc2}
-h2{color:#1f4e79;border-bottom:1px solid #d9e2ec;padding-bottom:4px;margin-top:32px}
+h2{color:#254e3c;border-bottom:1px solid #dce3d5;padding-bottom:4px;margin-top:32px}
 h3{margin:24px 0 8px;color:#334e68}
 h4.room{color:#627d98;text-transform:uppercase;font-size:13px;letter-spacing:.05em}
 .stats{display:flex;flex-wrap:wrap;gap:12px}
-.stat{border:1px solid #d9e2ec;border-radius:6px;padding:10px 14px;min-width:110px;font-size:13px;color:#52606d}
+.stat{border:1px solid #dce3d5;border-radius:6px;padding:10px 14px;min-width:110px;font-size:13px;color:#52606d}
 .stat b{display:block;font-size:22px;color:#1f2933}
-.finding{display:flex;gap:16px;border:1px solid #d9e2ec;border-radius:6px;padding:12px;margin:10px 0;break-inside:avoid}
+.finding{display:flex;gap:16px;border:1px solid #dce3d5;border-radius:6px;padding:12px;margin:10px 0;break-inside:avoid}
 .finding .img{flex:0 0 280px}.finding img{width:100%;border-radius:4px}
-.noimg{background:#f0f4f8;color:#829ab1;height:160px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.noimg{background:#f1f4eb;color:#829ab1;height:160px;display:flex;align-items:center;justify-content:center;border-radius:4px}
 .finding h4{margin:0 0 6px;text-transform:capitalize}.finding p{margin:6px 0;font-size:14px}
 .meta{display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
 .badge{padding:2px 8px;border-radius:10px;font-weight:600;color:#fff}
-.badge.spoken{background:#1f4e79}.badge.unspoken{background:#8e44ad}.badge.sensor{background:#c77700}.badge.inspector{background:#1e6b34}
-.ts,.status{color:#52606d;background:#f0f4f8;padding:2px 8px;border-radius:10px}
+.badge.spoken{background:#254e3c}.badge.unspoken{background:#8e44ad}.badge.sensor{background:#c77700}.badge.inspector{background:#1e6b34}
+.ts,.status{color:#52606d;background:#f1f4eb;padding:2px 8px;border-radius:10px}
 .quote{color:#52606d;font-style:italic}
 .unconfirmed{color:#b3261e;font-weight:600;font-size:13px}
 table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{border:1px solid #d9e2ec;padding:6px 10px;text-align:left}th{background:#f0f4f8}
+th,td{border:1px solid #dce3d5;padding:6px 10px;text-align:left}th{background:#f1f4eb}
 .cov.not_seen{color:#b3261e;font-weight:600}.cov.seen_not_mentioned{color:#c77700}
 .level svg{max-width:100%;height:auto}
 .limits{font-size:13px;color:#52606d}
-footer{margin-top:40px;border-top:1px solid #d9e2ec;padding-top:12px;font-size:12px;color:#829ab1}
+footer{margin-top:40px;border-top:1px solid #dce3d5;padding-top:12px;font-size:12px;color:#829ab1}
+.contents{padding:8px 18px 14px;background:#f6f8f1;border:1px solid #e0e6d7;border-radius:6px;margin-top:22px}.contents h2{border:0;margin:12px 0 6px;font-size:17px}.contents ol{columns:2;font-size:12px;line-height:2;color:#61734e;padding-left:20px}.contents a{color:inherit;text-decoration:none}
 @media (max-width:640px){.finding{flex-direction:column}.finding .img{flex:none}}
 @media print{main{max-width:none;padding:0}h2{break-after:avoid}.finding{flex-direction:row}
 .badge,.draft,.signed,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:16mm}}
 """
 
 
-def render(out_dir, review):
+def render(out_dir, review, property_address="[Property address]"):
     out_dir = Path(out_dir)
     findings = apply_review(load_findings(out_dir), review)
     level = read_json(out_dir / "level.json")
     coverage = read_json(out_dir / "coverage.json")
-    sections = [summary_section(findings), findings_section(findings, out_dir), level_section(level),
-                coverage_section(coverage), not_inspected_section(coverage)]
+    sections = [("summary", "Summary", summary_section(findings)),
+                ("findings", "Findings by system & room", findings_section(findings, out_dir)),
+                ("floor-level", "Floor level", level_section(level)),
+                ("coverage", "Coverage", coverage_section(coverage)),
+                ("limitations", "Items not inspected & limitations", not_inspected_section(coverage))]
+    contents = '<nav class="contents" aria-label="Report contents"><h2>Contents</h2><ol>' + ''.join(
+        f'<li><a href="#{key}">{esc(title)}</a></li>' for key, title, body in sections if body) + '</ol></nav>'
+    body = ''.join(text.replace('<section>', f'<section id="{key}">', 1)
+                   for key, _, text in sections)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspection Report</title>
 <style>{CSS}</style></head><body><main>
-<header><h1>Home Inspection Report</h1><p class="prop">Property: [Property address]</p>
+<header><h1>Home Inspection Report</h1><p class="prop">Property: {esc(property_address)}</p>
 <p class="prop">Generated {datetime.now():%B %d, %Y}</p>{signature(review)}</header>
-{"".join(sections)}
+{contents}{body}
 <footer>Prepared with Second Inspector, an AI assistant. AI-detected and sensor findings are flags for the
 inspector to evaluate; the licensed inspector is solely responsible for the contents of this report.</footer>
 </main></body></html>"""

@@ -53,3 +53,31 @@ def test_level_and_coverage_rendered(tmp_path):
     text = report.build(setup(tmp_path, level=level, coverage=coverage)).read_text(encoding="utf-8")
     assert "<svg id='dots'>" in text and "Kitchen: smoke detector" in text
     assert text.count(report.UNCONFIRMED) == 2
+
+
+def test_current_pipeline_coverage_list_is_reported(tmp_path):
+    coverage = [{"room": "garage", "items": [{"item": "smoke_detector", "label": "Smoke detector", "status": "not_seen"}]}]
+    text = report.build(setup(tmp_path, coverage=coverage)).read_text(encoding="utf-8")
+    assert "Garage: Smoke detector" in text
+    assert "Coverage</h2>" in text
+
+
+def test_property_address_is_escaped_and_report_has_navigation(tmp_path):
+    text = report.render(setup(tmp_path), None, property_address='123 Jane Doe Street <NJ>')
+    assert '123 Jane Doe Street &lt;NJ&gt;' in text
+    assert '[Property address]' not in text
+    assert 'Contents' in text
+    assert 'href="#findings"' in text and 'id="findings"' in text
+
+
+def test_svg_evidence_keeps_its_image_type(tmp_path):
+    evidence = tmp_path / 'level-garage.svg'
+    evidence.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>')
+    tag = report.image_tag(str(evidence), tmp_path, 'Floor level evidence')
+    assert 'data:image/svg+xml;base64,' in tag
+
+
+def test_mentioned_but_not_seen_coverage_has_readable_label(tmp_path):
+    coverage = [{'room': 'garage', 'items': [{'item': 'panel', 'label': 'Electrical panel', 'status': 'mentioned_not_seen'}]}]
+    text = report.build(setup(tmp_path, coverage=coverage)).read_text(encoding='utf-8')
+    assert '>Mentioned, not seen</td>' in text
