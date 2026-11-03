@@ -42,9 +42,12 @@ class Item:
 GFCI = "gfci_outlet"
 
 CHECKLIST = [
+    # Kitchens and apartments often have heat detectors or commercial detector heads; they count too.
     Item("smoke_detector", "Smoke detector", "smoke detector", "Electrical", ("bedroom", "hallway"),
-         ("smoke detector", "smoke alarm", "smoke", "carbon monoxide", "co detector"),
-         "a smoke or carbon monoxide alarm (not a light fixture, speaker, sprinkler or motion sensor)"),
+         ("smoke detector", "smoke alarm", "smoke", "carbon monoxide", "co detector", "heat detector",
+          "fire alarm"),
+         "a smoke, heat or carbon monoxide alarm or detector (not a light fixture, speaker, sprinkler head or "
+         "motion sensor)"),
     # SAM finds every outlet; Spark then decides which ones are GFCIs from the TEST/RESET buttons.
     Item(GFCI, "GFCI outlet", "electrical outlet", "Electrical", ("kitchen", "bathroom", "laundry", "garage"),
          ("gfci", "gfi", "ground fault"), "an electrical wall outlet (receptacle)", max_tracks=4),
@@ -249,9 +252,9 @@ def check_room(inspector, room, items, detections, observed):
 async def check(inspector, observed, rooms):
     """Run SAM once per checklist item, then check every room (and the house as a whole) in parallel."""
     house = Room(HOUSE, HOUSE, 0.0, rooms[-1].t_end)
-    present = {room.type for room in rooms}
-    # An unknown room still gets every item looked for, so what was seen is reported.
-    items = [i for i in CHECKLIST if HOUSE in i.rooms or "other" in present or present & set(i.rooms)]
+    # Every item is looked for in every room: a detector in a kitchen is still worth reporting as seen, even
+    # though only bedrooms and hallways require one. check_room drops items that were neither expected nor seen.
+    items = CHECKLIST
     found = await asyncio.gather(*(inspector.detections(item.sam_phrase) for item in items))
     detections = {item.key: hits for item, hits in zip(items, found)}
     scopes = [(room, [i for i in items if HOUSE not in i.rooms]) for room in rooms]

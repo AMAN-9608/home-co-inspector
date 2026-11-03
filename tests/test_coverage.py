@@ -147,6 +147,29 @@ def test_check_reports_each_room_and_the_house(monkeypatch, tmp_path):
     assert [(i["item"], i["status"]) for i in house["items"]] == [("electrical_panel", "not_seen")]
 
 
+def test_detector_outside_a_required_room_is_still_looked_for_and_reported(monkeypatch, tmp_path):
+    asked = []
+    monkeypatch.setattr(coverage.verify, "render", fake_render)
+
+    def fake_check(client, candidates):
+        asked.extend(c["question"] for c in candidates)
+        return [{"verdict": "yes" if c["item"] == "smoke_detector" else "no", "gfci": "n/a", "note": ""}
+                for c in candidates]
+
+    monkeypatch.setattr(coverage, "check_candidates", fake_check)
+    inspector = FakeInspector(tmp_path, {"smoke detector": [detection(30, "s1")]})
+    observed = [said(1.0, "I'm in the kitchen, this is the sprinkler", "kitchen", kind="room_change")]
+
+    kitchen, _house = asyncio.run(coverage.check(inspector, observed, coverage.rooms_from(observed, 23.0)))
+
+    items = {i["item"]: i for i in kitchen["items"]}
+    assert items["smoke_detector"]["status"] == "seen_not_mentioned"
+    assert not items["smoke_detector"]["expected"]
+    assert items["smoke_detector"]["evidence"]["frame"] == 30
+    assert "exhaust_fan" not in items
+    assert any("heat" in question for question in asked)
+
+
 def test_pipeline_writes_coverage_and_tags_unspoken_candidates_with_their_room(monkeypatch, tmp_path):
     from contextlib import asynccontextmanager
 

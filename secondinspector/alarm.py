@@ -35,7 +35,7 @@ IDENTIFY_SCHEMA = {
     },
 }
 
-IDENTIFY_PROMPT = """These images show one smoke or carbon monoxide alarm from a home inspection walkthrough.
+IDENTIFY_PROMPT = """These images show one smoke, heat or carbon monoxide alarm from a home inspection walkthrough.
 - label_text: every printed word, logo and number you can read, exactly as printed.
 - brand, model: as printed; "unknown" if not readable. Never guess a model number from the shape.
 - kind: "smoke_co" only if the label or a CO marking shows it is combined; "unknown" if you cannot tell.
