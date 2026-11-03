@@ -144,7 +144,7 @@ with tempfile.TemporaryDirectory() as directory:
             page.get_by_role('button', name='Print / Save as PDF').click()
             assert page.evaluate('window.reportPrintRequested === true')
             assert page.locator('.report-aside').get_by_text('Floor level measurements', exact=True).count() == 0
-            assert page.locator('.report-aside').get_by_text('Evidence photographs', exact=True).count() == 0
+            assert page.locator('.report-aside').get_by_text('Findings by system & room, with evidence', exact=True).count() == 1
             assert not errors, errors
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
             page.locator('#nav [data-page="reports"]').click()
@@ -161,7 +161,6 @@ with tempfile.TemporaryDirectory() as directory:
             page.get_by_role('button', name='View report', exact=True).click()
             page.get_by_role('heading', name='Ready for the next chapter.').wait_for()
             assert page.locator('.report-aside').get_by_text('Floor level measurements', exact=True).count() == 1
-            assert page.locator('.report-aside').get_by_text('Evidence photographs', exact=True).count() == 1
             image = page.frame_locator('iframe').locator('.finding img').first
             image.wait_for()
             assert image.evaluate('(el) => el.complete && el.naturalWidth > 0'), 'Report evidence must render with its correct image type'
