@@ -154,3 +154,14 @@ def test_replay_filename_comes_from_clip_path_not_room(tmp_path):
     del data['clip']
     (folder / 'findings.json').write_text(json.dumps(data))
     assert request(tmp_path, 'GET', '/api/clips/garage').json()['filename'] == 'garage'
+
+
+def test_findings_carry_confidence_location_and_ai_corroboration(tmp_path):
+    folder = recording(tmp_path)
+    data = json.loads((folder / 'findings.json').read_text())
+    data['spoken'][0].update(confidence=0.7538, box=[1, 2, 3, 4])
+    data['unspoken_covered_or_rejected'] = [{'description': 'Same crack', 'matches_spoken': 0}, {'description': 'Unmatched', 'matches_spoken': None}]
+    (folder / 'findings.json').write_text(json.dumps(data))
+    spoken, unspoken = request(tmp_path, 'GET', '/api/clips/garage').json()['findings']
+    assert (spoken['confidence'], spoken['located'], spoken['corroborated']) == (0.75, True, 1)
+    assert (unspoken['confidence'], unspoken['located'], unspoken['corroborated']) == (None, False, 0)

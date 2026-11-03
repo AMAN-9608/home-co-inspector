@@ -18,6 +18,23 @@ logger = logging.getLogger(__name__)
 MEDIA_TYPES = {'.jpg', '.jpeg', '.png', '.webp', '.svg', '.mp4', '.mov', '.m4v'}
 
 
+def provenance(raw):
+    """Per-finding trust signals the review queue shows next to each candidate."""
+    corroborated = {}
+    for flag in raw.get('unspoken_covered_or_rejected', []):
+        if isinstance(flag.get('matches_spoken'), int):
+            key = f"spoken-{flag['matches_spoken']}"
+            corroborated[key] = corroborated.get(key, 0) + 1
+    out = {}
+    for source in ('spoken', 'unspoken'):
+        for i, finding in enumerate(raw.get(source, [])):
+            confidence = finding.get('confidence')
+            out[f'{source}-{i}'] = {'confidence': round(confidence, 2) if isinstance(confidence, (int, float)) else None,
+                                    'located': bool(finding.get('box')),
+                                    'corroborated': corroborated.get(f'{source}-{i}', 0)}
+    return out
+
+
 class Workspace:
     def __init__(self, root):
         self.root = Path(root).resolve()
@@ -46,7 +63,8 @@ class Workspace:
     def detail(self, folder):
         state = review.load(folder)
         raw = report.read_json(folder / 'findings.json')
-        findings = [{**finding, **state['items'][finding['id']].get('edits', {}),
+        trust = provenance(raw)
+        findings = [{**finding, **trust.get(finding['id'], {}), **state['items'][finding['id']].get('edits', {}),
                      'decision': state['items'][finding['id']]['decision'],
                      'note': state['items'][finding['id']].get('note', ''),
                      'image': self.media_url(finding.get('evidence_path'), folder)}

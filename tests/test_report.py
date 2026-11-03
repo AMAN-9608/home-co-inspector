@@ -81,3 +81,17 @@ def test_mentioned_but_not_seen_coverage_has_readable_label(tmp_path):
     coverage = [{'room': 'garage', 'items': [{'item': 'panel', 'label': 'Electrical panel', 'status': 'mentioned_not_seen'}]}]
     text = report.build(setup(tmp_path, coverage=coverage)).read_text(encoding='utf-8')
     assert '>Mentioned, not seen</td>' in text
+
+
+def test_signed_date_uses_local_time_and_statuses_are_plain_language(tmp_path):
+    from datetime import datetime
+    stamp = "2026-11-03T03:30:00+00:00"
+    local = datetime.fromisoformat(stamp).astimezone().strftime("%B %d, %Y")
+    review = {"items": {"spoken-0": {"decision": "accepted"}, "unspoken-0": {"decision": "accepted"}},
+              "added": [], "signed_by": "Jane Doe", "signed_at": stamp}
+    text = report.render(setup(tmp_path), review)
+    assert f"Reviewed and signed by Jane Doe on {local}" in text
+    assert "Status:" not in text
+    assert "1 narrated by the inspector on site; 1 flagged by AI" in text
+    assert "Every finding below was reviewed by the signing inspector." in text
+    assert "Every finding below was reviewed" not in report.render(tmp_path, None)

@@ -1,7 +1,7 @@
 import argparse
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 SCHEMA = ["id", "source", "room", "sop_section", "component_phrase", "defect_phrase", "description",
@@ -11,7 +11,7 @@ DECISIONS = {"pending", "accepted", "edited", "rejected"}
 
 
 def now():
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def normalize(finding, **overrides):

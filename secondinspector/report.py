@@ -17,6 +17,7 @@ COVERAGE_LABELS = {
     "seen_not_mentioned": "Seen, not mentioned", "not_seen": "Not seen",
     "mentioned_not_seen": "Mentioned, not seen",
 }
+STATUS_LABELS = {"confirmed": "Located in video", "uncertain": "Needs on-site check", "measured": "Measured"}
 UNCONFIRMED = "AI finding — not yet confirmed by inspector"
 LIMITATIONS = (
     "This inspection is a visual, non-invasive assessment of readily accessible areas on the date of "
@@ -112,7 +113,7 @@ def finding_card(f, out_dir):
     if timestamp(f):
         meta.append(f'<span class="ts">Video {timestamp(f)}</span>')
     if f.get("status"):
-        meta.append(f'<span class="status">{esc(f["status"])}</span>')
+        meta.append(f'<span class="status">{esc(STATUS_LABELS.get(f["status"], f["status"]))}</span>')
     body = [f'<p>{esc(f.get("description"))}</p>']
     if f.get("utterance"):
         body.append(f'<p class="quote">Inspector said: “{esc(f["utterance"])}”</p>')
@@ -142,13 +143,29 @@ def findings_section(findings, out_dir):
 
 def summary_section(findings):
     by_source = Counter(BADGES.get(f["source"], f["source"]) for f in findings)
-    by_status = Counter(f.get("status") or "unrated" for f in findings)
+    by_status = Counter(STATUS_LABELS.get(f.get("status"), f.get("status") or "Not rated") for f in findings)
     unconfirmed = sum(1 for f in findings if not f["confirmed"])
     cells = [f'<div class="stat"><b>{len(findings)}</b>Total findings</div>']
     cells += [f'<div class="stat"><b>{n}</b>{esc(k)}</div>' for k, n in sorted(by_source.items())]
-    cells += [f'<div class="stat"><b>{n}</b>Status: {esc(k)}</div>' for k, n in sorted(by_status.items())]
+    cells += [f'<div class="stat"><b>{n}</b>{esc(k)}</div>' for k, n in sorted(by_status.items())]
     cells.append(f'<div class="stat"><b>{unconfirmed}</b>Awaiting inspector review</div>')
-    return f'<section><h2>Summary</h2><div class="stats">{"".join(cells)}</div></section>'
+    note = method_note(findings) + (" Every finding below was reviewed by the signing inspector." if not unconfirmed else "")
+    return (f'<section><h2>Summary</h2><p class="method">{esc(note)}</p>'
+            f'<div class="stats">{"".join(cells)}</div></section>')
+
+
+def method_note(findings):
+    spoken = sum(f["source"] == "spoken" for f in findings)
+    ai = sum(f["source"] == "unspoken" for f in findings)
+    added = sum(f["source"] == "inspector" for f in findings)
+    sensor = sum(f["source"] == "sensor" for f in findings)
+    parts = [f"{spoken} narrated by the inspector on site",
+             f"{ai} flagged by AI review of the video that the inspector did not mention"]
+    if sensor:
+        parts.append(f"{sensor} from phone floor-level measurements")
+    if added:
+        parts.append(f"{added} added by the inspector during review")
+    return "How this report was made: " + "; ".join(parts) + "."
 
 
 def level_section(level):
@@ -194,7 +211,8 @@ def signature(review):
     if review and review.get("signed_by"):
         when = review.get("signed_at") or ""
         try:
-            when = datetime.fromisoformat(when).strftime("%B %d, %Y")
+            # signed_at is stored in UTC; show the inspector's local date.
+            when = datetime.fromisoformat(when).astimezone().strftime("%B %d, %Y")
         except ValueError:
             pass
         return f'<div class="signed">Reviewed and signed by {esc(review["signed_by"])} on {esc(when)}</div>'
@@ -231,6 +249,7 @@ th,td{border:1px solid #dce3d5;padding:6px 10px;text-align:left}th{background:#f
 .cov.not_seen{color:#b3261e;font-weight:600}.cov.seen_not_mentioned{color:#c77700}
 .level svg{max-width:100%;height:auto}
 .limits{font-size:13px;color:#52606d}
+.method{font-size:14px;color:#334e68;background:#f6f8f1;border-left:3px solid #254e3c;padding:10px 14px;margin:8px 0 14px}
 footer{margin-top:40px;border-top:1px solid #dce3d5;padding-top:12px;font-size:12px;color:#829ab1}
 .contents{padding:8px 18px 14px;background:#f6f8f1;border:1px solid #e0e6d7;border-radius:6px;margin-top:22px}.contents h2{border:0;margin:12px 0 6px;font-size:17px}.contents ol{columns:2;font-size:12px;line-height:2;color:#61734e;padding-left:20px}.contents a{color:inherit;text-decoration:none}
 @media (max-width:640px){.finding{flex-direction:column}.finding .img{flex:none}}
