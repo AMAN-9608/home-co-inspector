@@ -37,8 +37,8 @@ Neither `pyproject.toml` nor `uv.lock` received new dependencies for this interf
 
 ## Showcase flow
 
-1. Choose **Analyze new clip**. Upload a new recording for live analysis, or choose **Replay a processed clip** for a short, explicitly labeled demo sequence using saved results.
-2. Review the evidence. Accept a finding, edit and accept it, or reject it with an optional reason. Add your own observation with **Add missing finding**.
+1. Choose **Watch the demo replay** on the overview, or **Analyze new clip**. Upload a new recording for live analysis, or choose **Replay a processed clip** for a short, explicitly labeled demo sequence using saved results.
+2. Review the evidence. Click a finding (or its timestamp) to show its evidence frame, spoken quote and trust badges in the side panel. Accept a finding, edit and accept it, or reject it with an optional reason. Add your own observation with **Add missing finding**. Keyboard: J/K move, A accept, E edit, R reject.
 3. Enter your inspector name and confirm the review to sign off. Every candidate finding must have a decision first.
 4. Open **Reports** to view a signed-off inspection. Use **Print / Save as PDF** to print or save the report.
 
