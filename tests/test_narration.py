@@ -135,6 +135,16 @@ def fake_run_setup(monkeypatch, tmp_path, fail=False):
     monkeypatch.setattr(pipeline.sam, "upload_video", fake_upload)
     monkeypatch.setattr(pipeline.observations, "extract", lambda spark, turns: observed)
     monkeypatch.setattr(pipeline.Inspector, "find_evidence", fake_evidence)
+    monkeypatch.setattr(pipeline.media, "duration", lambda video: 10.0)
+
+    async def fake_check(inspector, seen, rooms):
+        image = inspector.evidence_dir / "coverage-hall-ceiling-0.jpg"
+        image.parent.mkdir(parents=True, exist_ok=True)
+        image.write_bytes(b"new")
+        return [{"room": "hall", "type": "hallway", "t_start": 0.0, "t_end": 10.0, "gfci_flags": [],
+                 "items": [{"item": "ceiling", "evidence": {"evidence_path": str(image)}}]}]
+
+    monkeypatch.setattr(pipeline.coverage, "check", fake_check)
     out = tmp_path / "out" / "walk"
     (out / "evidence").mkdir(parents=True)
     (out / "evidence" / "spoken-0.jpg").write_bytes(b"old")
@@ -168,6 +178,8 @@ def test_a_successful_run_swaps_in_new_evidence_and_points_findings_at_it(monkey
     path = findings["spoken"][0]["evidence_path"]
     assert path == str(out / "evidence" / "spoken-0.jpg")
     assert json.loads((out / "findings.json").read_text())["spoken"][0]["evidence_path"] == path
+    [room] = json.loads((out / "coverage.json").read_text())
+    assert room["items"][0]["evidence"]["evidence_path"] == str(out / "evidence" / "coverage-hall-ceiling-0.jpg")
 
 
 def test_relocate_rewrites_only_paths_under_the_old_folder():
