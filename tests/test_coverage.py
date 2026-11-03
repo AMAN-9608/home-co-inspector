@@ -62,6 +62,15 @@ def test_top_tracks_rank_by_frames_seen_then_confidence():
     assert [(d.object_id, d.frame) for d in best] == [("a", 2), ("b", 3)]
 
 
+def test_top_tracks_show_the_biggest_view_when_confidence_ties():
+    # SAM gives a whole track one confidence; the first frame is often a sliver at the frame edge.
+    sliver = sam.Detection("smoke detector", 28, "0", (0, 245, 32, 330), 0.84)
+    close = sam.Detection("smoke detector", 34, "0", (242, 455, 430, 636), 0.84)
+    far = sam.Detection("smoke detector", 44, "0", (133, 883, 234, 980), 0.84)
+    [best] = coverage.top_tracks([sliver, close, far], 0.0, 23.0, limit=1)
+    assert best.frame == 34
+
+
 def test_status_order():
     assert coverage.status(seen=True, said=True, tested=True) == "tested"
     assert coverage.status(seen=True, said=True, tested=False) == "inspected"

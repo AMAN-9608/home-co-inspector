@@ -148,7 +148,10 @@ def mentions(item, room, observed):
 
 
 def top_tracks(detections, t_start, t_end, limit, fps=2):
-    """The best frame of each of the `limit` objects SAM tracked longest inside the window."""
+    """The best frame of each of the `limit` objects SAM tracked longest inside the window.
+
+    SAM gives every frame of a track the same confidence, so ties go to the frame where the box is biggest:
+    the closest, least cut-off view of a small fixture, which is the one Spark can judge."""
     lo, hi = align.to_frame(t_start, fps), align.to_frame(t_end, fps)
     tracks = defaultdict(list)
     for detection in detections:
@@ -157,7 +160,11 @@ def top_tracks(detections, t_start, t_end, limit, fps=2):
     ranked = sorted(
         tracks.values(), key=lambda hits: (len(hits), max(d.confidence or 0 for d in hits)), reverse=True
     )
-    return [max(hits, key=lambda d: d.confidence or 0) for hits in ranked[:limit]]
+    return [max(hits, key=lambda d: (d.confidence or 0, area(d.box))) for hits in ranked[:limit]]
+
+
+def area(box):
+    return (box[2] - box[0]) * (box[3] - box[1])
 
 
 def status(seen, said, tested):
