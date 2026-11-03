@@ -13,7 +13,8 @@ const paths = {
   video:'M3 5h12v14H3z m12 5 6-3v10l-6-3', download:'M12 3v13 m-5-5 5 5 5-5 M4 17v4h16v-4',
   eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12 M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
   search:'M16 16l5 5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
-  leaf:'M5 20C-1 7 12 3 21 3c0 10-2 18-13 15 M5 20 16 9', lock:'M6 10h12v11H6z M8 10V6a4 4 0 0 1 8 0v4'
+  leaf:'M5 20C-1 7 12 3 21 3c0 10-2 18-13 15 M5 20 16 9', lock:'M6 10h12v11H6z M8 10V6a4 4 0 0 1 8 0v4',
+  level:'M2 9h20v6H2z M10 9v6 M14 9v6 M12 11v2'
 };
 const icon = (name) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name] || paths.circle}"/></svg>`;
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -218,7 +219,28 @@ async function openReview(id) {
 function reviewView() {
   const c=state.clip,total=c.findings.length,done=total-c.pending;
   const cover=Object.values(c.coverage||{}).flatMap(r=>r.items||[]);
-  view(`${steps(1)}<div class="review-heading"><div><span class="eyebrow">${esc(roomTitle(c))}</span><h1>Review the details.</h1><p>A finding is a starting point. Your judgment makes it final.</p></div><span class="badge ${c.signed_by?'':'amber'}">${icon(c.signed_by?'shield':'spark')}${c.signed_by?'Signed off':`${c.ai_count} AI-flagged`}</span></div><div class="review-layout"><aside class="evidence-panel"><div><div class="video-frame" id="focus-media">${focusMedia(c)}</div><div class="panel-caption"><span>${icon('video')} ${esc(roomTitle(c))}</span><span>${c.video?'ORIGINAL WALKTHROUGH':'EVIDENCE FRAME'}</span></div><div id="focus-detail">${focusDetail(c)}</div></div>${cover.length?`<section class="coverage"><h3>Coverage at a glance</h3>${cover.slice(0,10).map(i=>`<div class="coverage-row"><span>${esc(i.label||i.item)}</span><span class="badge ${['not_seen','seen_not_mentioned'].includes(i.status)?'amber':''}">${esc(({not_seen:'Not seen',seen_not_mentioned:'Not mentioned',mentioned_not_seen:'Mentioned, not seen',tested:'Tested',inspected:'Inspected'})[i.status]||i.status)}</span></div>`).join('')}</section>`:''}</aside><section aria-label="Findings review"><div class="review-progress"><span><b>${done}</b> of ${total} findings reviewed</span><span>${c.pending?`${c.pending} to go`:'All details considered'}</span></div><div class="progress-track" role="progressbar" aria-valuenow="${done}" aria-valuemin="0" aria-valuemax="${total||1}" aria-label="Findings reviewed"><div class="progress-fill" style="transform:scaleX(${total?done/total:1})"></div></div><p class="shortcuts"><kbd>J</kbd><kbd>K</kbd> move <kbd>A</kbd> accept <kbd>E</kbd> edit <kbd>R</kbd> reject</p><div id="findings-list">${c.findings.map(findingCard).join('')}</div>${!total?'<div class="modal-info">No candidate findings were recorded. Review the clip and add any findings before signing off.</div>':''}<button class="add-finding" data-action="add">${icon('plus')} Add missing finding</button><div class="sign-area">${c.pending||c.signed_by?`<p>${icon('lock')} ${c.pending?'Review every finding before signing off.':`Signed by ${esc(c.signed_by)}. Further changes require a new sign-off.`}</p>`:''}${c.signed_by?'<button class="primary" data-action="current-report">View signed report '+icon('arrow')+'</button>':`<button class="primary" data-action="sign" ${c.pending?'disabled':''}>${icon('shield')} Sign off on this clip ${icon('arrow')}</button>`}</div></section></div>`);
+  view(`${steps(1)}<div class="review-heading"><div><span class="eyebrow">${esc(roomTitle(c))}</span><h1>Review the details.</h1><p>A finding is a starting point. Your judgment makes it final.</p></div><span class="badge ${c.signed_by?'':'amber'}">${icon(c.signed_by?'shield':'spark')}${c.signed_by?'Signed off':`${c.ai_count} AI-flagged`}</span></div><div class="review-layout"><aside class="evidence-panel"><div><div class="video-frame" id="focus-media">${focusMedia(c)}</div><div class="panel-caption"><span>${icon('video')} ${esc(roomTitle(c))}</span><span>${c.video?'ORIGINAL WALKTHROUGH':'EVIDENCE FRAME'}</span></div><div id="focus-detail">${focusDetail(c)}</div></div>${cover.length?`<section class="coverage"><h3>Coverage at a glance</h3>${cover.slice(0,10).map(i=>`<div class="coverage-row"><span>${esc(i.label||i.item)}</span><span class="badge ${['not_seen','seen_not_mentioned'].includes(i.status)?'amber':''}">${esc(({not_seen:'Not seen',seen_not_mentioned:'Not mentioned',mentioned_not_seen:'Mentioned, not seen',tested:'Tested',inspected:'Inspected'})[i.status]||i.status)}</span></div>`).join('')}</section>`:''}${levelPanel(c)}</aside><section aria-label="Findings review"><div class="review-progress"><span><b>${done}</b> of ${total} findings reviewed</span><span>${c.pending?`${c.pending} to go`:'All details considered'}</span></div><div class="progress-track" role="progressbar" aria-valuenow="${done}" aria-valuemin="0" aria-valuemax="${total||1}" aria-label="Findings reviewed"><div class="progress-fill" style="transform:scaleX(${total?done/total:1})"></div></div><p class="shortcuts"><kbd>J</kbd><kbd>K</kbd> move <kbd>A</kbd> accept <kbd>E</kbd> edit <kbd>R</kbd> reject</p><div id="findings-list">${c.findings.map(findingCard).join('')}</div>${!total?'<div class="modal-info">No candidate findings were recorded. Review the clip and add any findings before signing off.</div>':''}<button class="add-finding" data-action="add">${icon('plus')} Add missing finding</button><div class="sign-area">${c.pending||c.signed_by?`<p>${icon('lock')} ${c.pending?'Review every finding before signing off.':`Signed by ${esc(c.signed_by)}. Further changes require a new sign-off.`}</p>`:''}${c.signed_by?'<button class="primary" data-action="current-report">View signed report '+icon('arrow')+'</button>':`<button class="primary" data-action="sign" ${c.pending?'disabled':''}>${icon('shield')} Sign off on this clip ${icon('arrow')}</button>`}</div></section></div>`);
+}
+function levelPanel(c) {
+  const lv=c.level||{rooms:[],readings:0};
+  const rows=lv.rooms.map(r=>`<div class="coverage-row"><span>${esc(r.room)}</span><span class="badge ${r.max_slope_deg>lv.threshold_deg?'red':''}">max ${r.max_slope_deg.toFixed(2)}°</span></div>${r.map?`<img class="level-map" src="${esc(r.map)}" alt="Slope map for ${esc(r.room)}">`:''}`).join('');
+  return `<section class="level-panel"><h3>${icon('level')} Floor level</h3>${lv.readings?`<p class="level-note">${plural(lv.readings,'phone reading')} · flagged above ${lv.threshold_deg}° (¼ in over 32 in)</p>${rows}`:'<p class="level-note">Lay your phone on the floor to measure slope. Readings over the limit become findings here.</p>'}<button class="ghost small" data-action="measure-level">${icon('level')} Measure with your phone</button></section>`;
+}
+function levelLink(c) { return `${location.origin}/level?clip=${encodeURIComponent(c.id)}`; }
+function levelModal() {
+  const c=state.clip,local=['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+  openModal(`${modalHeader('Measure the floor.','Your phone becomes a level. Each reading lands in this inspection.')}<div class="modal-info" data-level-modal>${local?`<b>Phones need HTTPS.</b> In a terminal run <code>cloudflared tunnel --url ${esc(location.origin.replace('127.0.0.1','localhost'))}</code>, then open the printed link plus <code>/level?clip=${esc(encodeURIComponent(c.id))}</code> on your phone.`:`Open this link on your phone:<br><a href="${esc(levelLink(c))}" target="_blank" rel="noopener">${esc(levelLink(c))}</a>`}</div><ol class="level-steps"><li>Tap <b>Start sensor</b> and allow motion access.</li><li><b>Flip calibrate</b>: tap it, turn the phone 180° on the same spot, tap again.</li><li>Lay the phone flat, top edge toward the same wall each time. Name the room and spot, tap <b>Record</b>, and let go.</li></ol><p class="level-live" id="level-live">${icon('clock')} ${plural(c.level?.readings||0,'reading')} so far. New readings appear here as you record.</p><div class="modal-actions">${local?'':`<button data-action="copy-level">${icon('file')} Copy link</button>`}<button class="primary" data-action="close">Done</button></div>`);
+  let seen=c.level?.readings||0;
+  const poll=async()=>{
+    if(!modal.open||!modal.querySelector('[data-level-modal]'))return;
+    try{
+      const data=await api(clipURL(c));
+      const count=data.level?.readings||0;
+      if(count!==seen){seen=count;updateReview(data);document.querySelector('#level-live').innerHTML=`${icon('check')} ${plural(count,'reading')} recorded. Findings and the slope map are updated.`;}
+    }catch{}
+    state.timers.push(setTimeout(poll,2500));
+  };
+  state.timers.push(setTimeout(poll,2500));
 }
 function updateReview(data,findingId) {
   state.clip=data;
@@ -316,6 +338,8 @@ document.addEventListener('click',async e=>{
       case 'reject':rejectForm(id);break;
       case 'sign':signForm();break;
       case 'seek':{selectFinding(id);const video=document.querySelector('#evidence-video');if(video){video.currentTime=Number(button.dataset.time);await video.play();}else if(matchMedia('(max-width:900px)').matches)document.querySelector('#focus-media').scrollIntoView({behavior:'smooth'});break;}
+      case 'measure-level':levelModal();break;
+      case 'copy-level':await navigator.clipboard.writeText(levelLink(state.clip));notify('Link copied. Open it on your phone.');break;
       case 'print-report':{const frame=document.querySelector('iframe');frame.contentWindow.focus();frame.contentWindow.print();break;}
     }
   }catch(error){showError(error);}

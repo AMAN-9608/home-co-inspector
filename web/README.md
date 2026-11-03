@@ -46,6 +46,16 @@ Live analysis uses the existing Spark/SAM pipeline and requires its existing cre
 
 Report organization follows the supplied residential inspection reference: property and inspector details, contents, summary, findings grouped by system and room, evidence, coverage, and limitations. Severity is not invented for findings that lack a severity assessment. Generated reports use the fictional demo address 123 Jane Doe Street, Demo City, NY 100001.
 
+## Floor level from a phone
+
+In review, **Floor level → Measure with your phone** shows how to open the level page for that inspection. Phones only expose the tilt sensor over HTTPS, so start a tunnel to the workspace port:
+
+```sh
+cloudflared tunnel --url http://localhost:8000
+```
+
+On the phone, open the printed `https://….trycloudflare.com` link followed by `/level?clip=<clip id>`. Tap **Start sensor**, run **Flip calibrate** once, then lay the phone flat (top edge toward the same wall each time) and **Record** each spot. Every reading is saved to that clip's `level_readings.json` and analyzed at once; spots steeper than 0.45° become pending **Sensor measurement** findings with a slope map, and the review panel updates live. A new reading withdraws an earlier sign-off. The standalone `python -m secondinspector.level serve` still works.
+
 This is a local, single-inspector workspace. Jobs run in memory and do not survive a server restart; saved review decisions do. Reload after making changes in another interface. Further edits invalidate a previous sign-off.
 
 ## Checks

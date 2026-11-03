@@ -9,6 +9,7 @@
   h1 { font-size: 20px; margin: 0 0 8px; }
   #msg { padding: 8px; border-radius: 6px; background: #fff3cd; margin-bottom: 10px; }
   #msg.ok { background: #d4edda; }
+  #target { font-size: 13px; color: #556; margin-bottom: 6px; }
   .vial { position: relative; width: 220px; height: 220px; margin: 10px auto; border-radius: 50%;
           background: #e8f3e0; border: 3px solid #556; }
   .vial::before, .vial::after { content: ""; position: absolute; background: #889; }
@@ -28,6 +29,7 @@
 </head>
 <body>
 <h1>Floor level</h1>
+<div id="target"></div>
 <div id="msg">Tap "Start sensor" to begin.</div>
 <button class="primary" id="start">Start sensor</button>
 <div class="vial"><div class="ring"></div><div id="bubble"></div></div>
@@ -43,6 +45,11 @@
 <script>
 const $ = id => document.getElementById(id);
 let latest = null, offset = {p: 0, r: 0}, flipFirst = null, readings = [];
+// Opened from the workspace (/level?clip=...), readings go straight into that inspection.
+const params = new URLSearchParams(location.search), clip = params.get("clip");
+const endpoint = clip ? `/api/clips/${encodeURIComponent(clip)}/level` : "/readings";
+if (params.get("room")) $("room").value = params.get("room");
+if (clip) $("target").textContent = `Saving to inspection: ${clip.replace(/[_-]+/g, " ")}`;
 const msg = (t, ok) => { $("msg").textContent = t; $("msg").className = ok ? "ok" : ""; };
 
 function onOrient(e) {
@@ -111,7 +118,7 @@ async function record() {
     let saved = "saved locally";
     if (location.protocol.startsWith("http")) {
       try {
-        const res = await fetch("/readings", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(rd)});
+        const res = await fetch(endpoint, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(rd)});
         if (res.ok) saved = "saved to server";
       } catch (_) {}
     }

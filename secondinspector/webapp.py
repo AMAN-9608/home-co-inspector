@@ -10,7 +10,7 @@ from pathlib import Path
 from urllib.parse import quote
 from uuid import uuid4
 
-from secondinspector import report, review, ui_helpers
+from secondinspector import level, report, review, ui_helpers
 
 WEB = Path(__file__).resolve().parent.parent / 'web'
 MAX_UPLOAD = 512 * 1024 * 1024
@@ -71,6 +71,7 @@ class Workspace:
                     for finding in review.candidates(folder)]
         findings += [{**finding, 'decision': 'accepted', 'image': self.media_url(finding.get('evidence_path'), folder)}
                      for finding in state.get('added', [])]
+        measured = report.read_json(folder / 'level.json') or {}
         return {'id': folder.name, 'title': folder.name.replace('_', ' ').replace('-', ' ').title(),
                 'filename': Path(str(raw.get('clip') or folder.name).replace('\\', '/')).name,
                 'rooms': list(dict.fromkeys(f.get('room') or 'Unassigned' for f in findings)),
@@ -80,7 +81,11 @@ class Workspace:
                 'thumbnail': next((f['image'] for f in findings if f.get('image')), None),
                 'video': self.media_url(str(folder / 'proxy.mp4'), folder) or self.media_url(raw.get('clip'), folder),
                 'coverage': report.coverage_rooms(report.read_json(folder / 'coverage.json')),
-                'has_level': bool((report.read_json(folder / 'level.json') or {}).get('rooms')),
+                'has_level': bool(measured.get('rooms')),
+                'level': {'readings': len(measured.get('readings', [])), 'threshold_deg': level.THRESHOLD_DEG,
+                          'rooms': [{'room': room, 'max_slope_deg': info['max_slope_deg'],
+                                     'map': self.media_url(info.get('svg'), folder)}
+                                    for room, info in measured.get('rooms', {}).items()]},
                 'transcript': raw.get('transcript') or '',
                 'updated': (folder / 'findings.json').stat().st_mtime}
 
@@ -121,8 +126,8 @@ class Workspace:
                         raise ValueError('Upload is too large (maximum 512 MB)')
                     if not event.get('more_body'):
                         break
-            if method == 'GET' and path in ('/', '/app.js', '/styles.css'):
-                asset = WEB / ('index.html' if path == '/' else path[1:])
+            if method == 'GET' and path in ('/', '/app.js', '/styles.css', '/level'):
+                asset = WEB / {'/': 'index.html', '/level': 'level.html'}.get(path, path[1:])
                 body = asset.read_bytes()
                 content_type = mimetypes.guess_type(asset.name)[0] or 'text/plain'
             elif method == 'GET' and path.startswith('/media/'):
@@ -196,6 +201,21 @@ class Workspace:
                             raise ValueError('Inspector name required')
                         review.sign(state, data['name'])
                     review.save(folder, state)
+                    body = self.detail(folder)
+                elif method == 'POST' and action == 'level':
+                    reading = json.loads(payload)
+                    if not isinstance(reading, dict):
+                        raise ValueError('Expected a JSON object')
+                    reading = {'room': str(reading.get('room') or '').strip()[:80] or 'Unassigned',
+                               'spot': str(reading.get('spot') or '').strip()[:80], 't': str(reading.get('t') or ''),
+                               'pitch_deg': float(reading['pitch_deg']), 'roll_deg': float(reading['roll_deg']),
+                               'samples': int(reading.get('samples') or 0)}
+                    level.append_reading(folder, reading)
+                    level.analyze(folder)
+                    # A new measurement can add a finding, so an earlier sign-off no longer covers everything.
+                    if state.get('signed_by'):
+                        review.unsign(state)
+                        review.save(folder, state)
                     body = self.detail(folder)
                 else:
                     raise FileNotFoundError('Not found')

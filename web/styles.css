@@ -21,3 +21,4 @@ main:focus-visible{outline:none}
 @media(hover:none){.shortcuts{display:none}}
 @media(max-width:1180px){.story{grid-template-columns:repeat(2,1fr)}.story-step:nth-child(2):after{display:none}}
 @media(max-width:640px){.story{grid-template-columns:1fr;gap:8px}.story-step:after{display:none}.story-step{padding:14px 16px}.focus-card blockquote{font-size:15px}}
+.level-panel{margin-top:22px}.level-panel h3{display:flex;align-items:center;gap:7px;font-size:12px}.level-note{font-size:10px;color:var(--muted);line-height:1.6;margin:0 0 6px}.level-map{display:block;max-width:100%;margin:8px 0;background:white;border:1px solid var(--line);border-radius:7px}.level-steps{font-size:11px;line-height:1.8;padding-left:18px;margin:14px 0 0}.level-live{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--green);margin:12px 0 0}.modal-info code{background:white;padding:1px 5px;border-radius:4px;word-break:break-all}

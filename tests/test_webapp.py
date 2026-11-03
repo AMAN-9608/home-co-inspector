@@ -165,3 +165,46 @@ def test_findings_carry_confidence_location_and_ai_corroboration(tmp_path):
     spoken, unspoken = request(tmp_path, 'GET', '/api/clips/garage').json()['findings']
     assert (spoken['confidence'], spoken['located'], spoken['corroborated']) == (0.75, True, 1)
     assert (unspoken['confidence'], unspoken['located'], unspoken['corroborated']) == (None, False, 0)
+
+
+def test_level_page_is_served_from_the_workspace(tmp_path):
+    response = request(tmp_path, 'GET', '/level')
+    assert response.status_code == 200
+    assert 'Start sensor' in response.text and '/api/clips/' in response.text
+
+
+def test_phone_readings_land_in_the_inspection_and_become_findings(tmp_path):
+    folder = recording(tmp_path)
+    flat = request(tmp_path, 'POST', '/api/clips/garage/level',
+                   json={'room': 'Garage', 'spot': 'door', 'pitch_deg': 0.1, 'roll_deg': 0.0, 'samples': 30})
+    assert flat.status_code == 200
+    assert flat.json()['level']['readings'] == 1
+    assert not [f for f in flat.json()['findings'] if f['source'] == 'sensor']
+
+    sloped = request(tmp_path, 'POST', '/api/clips/garage/level',
+                     json={'room': 'Garage', 'spot': 'corner', 'pitch_deg': 1.2, 'roll_deg': 0.3, 'samples': 30}).json()
+    [finding] = [f for f in sloped['findings'] if f['source'] == 'sensor']
+    assert finding['decision'] == 'pending' and finding['room'] == 'Garage'
+    assert finding['image'].endswith('level-garage.svg')
+    [room] = sloped['level']['rooms']
+    assert room['max_slope_deg'] > sloped['level']['threshold_deg'] and room['map'].endswith('level-garage.svg')
+    assert len(json.loads((folder / 'level_readings.json').read_text())) == 2
+
+
+def test_a_new_reading_withdraws_an_earlier_signoff(tmp_path):
+    folder = recording(tmp_path)
+    for finding_id in ('spoken-0', 'unspoken-0'):
+        request(tmp_path, 'POST', '/api/clips/garage/decision', json={'id': finding_id, 'decision': 'accepted'})
+    assert request(tmp_path, 'POST', '/api/clips/garage/sign', json={'name': 'Alex Inspector'}).status_code == 200
+    detail = request(tmp_path, 'POST', '/api/clips/garage/level',
+                     json={'room': 'Garage', 'spot': 'corner', 'pitch_deg': 1.2, 'roll_deg': 0.3}).json()
+    assert detail['signed_by'] is None and detail['pending'] == 1
+    assert json.loads((folder / 'review.json').read_text())['signed_by'] is None
+
+
+def test_bad_level_readings_are_rejected(tmp_path):
+    folder = recording(tmp_path)
+    assert request(tmp_path, 'POST', '/api/clips/garage/level', json={'room': 'Garage'}).status_code == 400
+    assert request(tmp_path, 'POST', '/api/clips/garage/level', json={'pitch_deg': 'flat', 'roll_deg': 0}).status_code == 400
+    assert request(tmp_path, 'POST', '/api/clips/missing/level', json={'pitch_deg': 0, 'roll_deg': 0}).status_code == 404
+    assert not (folder / 'level_readings.json').exists()
