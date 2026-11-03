@@ -39,6 +39,38 @@
       "pitch_deg": 0.0,
       "roll_deg": -0.9,
       "samples": 61
+    },
+    {
+      "room": "Bonus room",
+      "spot": "Door corner",
+      "t": "2026-11-03T05:02:25.474Z",
+      "pitch_deg": 1.867,
+      "roll_deg": -0.267,
+      "samples": 3
+    },
+    {
+      "room": "Bonus room",
+      "spot": "Stairs corner",
+      "t": "2026-11-03T05:02:55.134Z",
+      "pitch_deg": 1.2,
+      "roll_deg": 0.22,
+      "samples": 5
+    },
+    {
+      "room": "Bonus room",
+      "spot": "Middle tile",
+      "t": "2026-11-03T05:05:33.789Z",
+      "pitch_deg": 1.64,
+      "roll_deg": -0.4,
+      "samples": 5
+    },
+    {
+      "room": "Bonus room",
+      "spot": "Right corner top",
+      "t": "2026-11-03T05:07:33.987Z",
+      "pitch_deg": -0.233,
+      "roll_deg": -1.217,
+      "samples": 6
     }
   ],
   "findings": [
@@ -89,6 +121,102 @@
         "threshold_deg": 0.45,
         "over_threshold": true
       }
+    },
+    {
+      "id": "level-bonus-room-door-corner",
+      "source": "sensor",
+      "room": "Bonus room",
+      "sop_section": "Structure",
+      "component_phrase": "floor",
+      "defect_phrase": "out of level",
+      "description": "Floor at Door corner slopes 1.89 deg (3.95 in per 10 ft), over the 0.45 deg threshold. Recheck with a level and consider structural evaluation.",
+      "utterance": "",
+      "t_start": null,
+      "t_end": null,
+      "frame": null,
+      "box": null,
+      "status": "measured",
+      "evidence_path": "data\\processed\\garage_door_video\\level-bonus-room.svg",
+      "measurement": {
+        "slope_deg": 1.886,
+        "in_per_10ft": 3.951,
+        "mm_per_m": 32.93,
+        "downhill_deg": 188.1,
+        "threshold_deg": 0.45,
+        "over_threshold": true
+      }
+    },
+    {
+      "id": "level-bonus-room-stairs-corner",
+      "source": "sensor",
+      "room": "Bonus room",
+      "sop_section": "Structure",
+      "component_phrase": "floor",
+      "defect_phrase": "out of level",
+      "description": "Floor at Stairs corner slopes 1.22 deg (2.56 in per 10 ft), over the 0.45 deg threshold. Recheck with a level and consider structural evaluation.",
+      "utterance": "",
+      "t_start": null,
+      "t_end": null,
+      "frame": null,
+      "box": null,
+      "status": "measured",
+      "evidence_path": "data\\processed\\garage_door_video\\level-bonus-room.svg",
+      "measurement": {
+        "slope_deg": 1.22,
+        "in_per_10ft": 2.556,
+        "mm_per_m": 21.3,
+        "downhill_deg": 169.6,
+        "threshold_deg": 0.45,
+        "over_threshold": true
+      }
+    },
+    {
+      "id": "level-bonus-room-middle-tile",
+      "source": "sensor",
+      "room": "Bonus room",
+      "sop_section": "Structure",
+      "component_phrase": "floor",
+      "defect_phrase": "out of level",
+      "description": "Floor at Middle tile slopes 1.69 deg (3.54 in per 10 ft), over the 0.45 deg threshold. Recheck with a level and consider structural evaluation.",
+      "utterance": "",
+      "t_start": null,
+      "t_end": null,
+      "frame": null,
+      "box": null,
+      "status": "measured",
+      "evidence_path": "data\\processed\\garage_door_video\\level-bonus-room.svg",
+      "measurement": {
+        "slope_deg": 1.688,
+        "in_per_10ft": 3.536,
+        "mm_per_m": 29.47,
+        "downhill_deg": 193.7,
+        "threshold_deg": 0.45,
+        "over_threshold": true
+      }
+    },
+    {
+      "id": "level-bonus-room-right-corner-top",
+      "source": "sensor",
+      "room": "Bonus room",
+      "sop_section": "Structure",
+      "component_phrase": "floor",
+      "defect_phrase": "out of level",
+      "description": "Floor at Right corner top slopes 1.24 deg (2.60 in per 10 ft), over the 0.45 deg threshold. Recheck with a level and consider structural evaluation.",
+      "utterance": "",
+      "t_start": null,
+      "t_end": null,
+      "frame": null,
+      "box": null,
+      "status": "measured",
+      "evidence_path": "data\\processed\\garage_door_video\\level-bonus-room.svg",
+      "measurement": {
+        "slope_deg": 1.239,
+        "in_per_10ft": 2.596,
+        "mm_per_m": 21.63,
+        "downhill_deg": 280.8,
+        "threshold_deg": 0.45,
+        "over_threshold": true
+      }
     }
   ],
   "rooms": {
@@ -99,6 +227,10 @@
     "Living room": {
       "max_slope_deg": 0.9,
       "svg": "data\\processed\\garage_door_video\\level-living-room.svg"
+    },
+    "Bonus room": {
+      "max_slope_deg": 1.886,
+      "svg": "data\\processed\\garage_door_video\\level-bonus-room.svg"
     }
   }
 }

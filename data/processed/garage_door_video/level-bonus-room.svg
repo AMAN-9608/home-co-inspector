@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="350" font-family="sans-serif" font-size="12">
+<text x="8" y="18" font-weight="bold">Bonus room (threshold 0.45 deg)</text>
+<circle cx="80" cy="100" r="8" fill="#d62728"/>
+<line x1="80" y1="100" x2="70.8" y2="164.4" stroke="#d62728" stroke-width="3"/>
+<circle cx="70.8" cy="164.4" r="3" fill="#d62728"/>
+<text x="80" y="40" text-anchor="middle">Door corner</text>
+<text x="80" y="160" text-anchor="middle">1.89 deg</text>
+<circle cx="240" cy="100" r="8" fill="#d62728"/>
+<line x1="240" y1="100" x2="251.0" y2="159.7" stroke="#d62728" stroke-width="3"/>
+<circle cx="251.0" cy="159.7" r="3" fill="#d62728"/>
+<text x="240" y="40" text-anchor="middle">Stairs corner</text>
+<text x="240" y="160" text-anchor="middle">1.22 deg</text>
+<circle cx="80" cy="260" r="8" fill="#d62728"/>
+<line x1="80" y1="260" x2="64.6" y2="323.2" stroke="#d62728" stroke-width="3"/>
+<circle cx="64.6" cy="323.2" r="3" fill="#d62728"/>
+<text x="80" y="200" text-anchor="middle">Middle tile</text>
+<text x="80" y="320" text-anchor="middle">1.69 deg</text>
+<circle cx="240" cy="260" r="8" fill="#d62728"/>
+<line x1="240" y1="260" x2="179.8" y2="248.5" stroke="#d62728" stroke-width="3"/>
+<circle cx="179.8" cy="248.5" r="3" fill="#d62728"/>
+<text x="240" y="200" text-anchor="middle">Right corner top</text>
+<text x="240" y="320" text-anchor="middle">1.24 deg</text>
+</svg>
