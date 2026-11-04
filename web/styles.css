@@ -345,3 +345,5 @@ dialog form .modal-actions{padding-bottom:0}
 @media(hover:none){.shortcuts{display:none}.decision-bar kbd{display:none}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}.scan-line{display:none}}
 @media print{.appbar,.footer,.report-aside{display:none}}
+
+.demo-banner{padding:10px 20px;background:#e6f0f8;color:#164b77;text-align:center;font-size:12px;line-height:1.5}

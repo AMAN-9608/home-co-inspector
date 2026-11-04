@@ -258,6 +258,11 @@ footer{margin-top:40px;border-top:1px solid #d3dadd;padding-top:12px;font-size:1
 """
 
 
+def rebrand_legacy_report(text):
+    return text.replace('<footer>Prepared with Second Inspector, an AI assistant.',
+                        '<footer>Prepared with Home Co-Inspector, an AI assistant.')
+
+
 def render(out_dir, review, property_address="[Property address]"):
     out_dir = Path(out_dir)
     findings = apply_review(load_findings(out_dir), review)
@@ -273,12 +278,12 @@ def render(out_dir, review, property_address="[Property address]"):
     body = ''.join(text.replace('<section>', f'<section id="{key}">', 1)
                    for key, _, text in sections)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspection Report</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspection Report – Home Co-Inspector</title>
 <style>{CSS}</style></head><body><main>
 <header><h1>Home Inspection Report</h1><p class="prop">Property: {esc(property_address)}</p>
 <p class="prop">Generated {datetime.now():%B %d, %Y}</p>{signature(review)}</header>
 {contents}{body}
-<footer>Prepared with Second Inspector, an AI assistant. AI-detected and sensor findings are flags for the
+<footer>Prepared with Home Co-Inspector, an AI assistant. AI-detected and sensor findings are flags for the
 inspector to evaluate; the licensed inspector is solely responsible for the contents of this report.</footer>
 </main></body></html>"""
 

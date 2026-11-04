@@ -1,4 +1,4 @@
-"""Second Inspector UI.  Run: uv run streamlit run app.py"""
+"""Home Co-Inspector UI.  Run: uv run streamlit run app.py"""
 from __future__ import annotations
 
 import asyncio
@@ -17,7 +17,7 @@ PROCESSED = ROOT / "data" / "processed"
 RAW = ROOT / "data" / "raw"
 EDITABLE = ["room", "sop_section", "component_phrase", "defect_phrase", "description"]
 
-st.set_page_config(page_title="Second Inspector", page_icon="🏠", layout="wide")
+st.set_page_config(page_title="Home Co-Inspector", page_icon="🏠", layout="wide")
 st.markdown(
     """<style>
 .chip{display:inline-block;padding:2px 10px;border-radius:12px;color:#fff;font-size:0.8rem;font-weight:600;margin-right:6px}
@@ -63,7 +63,7 @@ def start_pipeline(clip: Path):
 
 
 # ---------- sidebar ----------
-st.sidebar.title("Second Inspector")
+st.sidebar.title("Home Co-Inspector")
 st.sidebar.caption("AI co-inspector. You confirm every finding.")
 folders = h.discover_processed(PROCESSED)
 mode = st.sidebar.radio("Mode", ["Replay processed room", "Analyze new clip"])
@@ -99,7 +99,7 @@ else:
 
 page = st.sidebar.radio("Section", ["Review queue", "Room status", "Report"])
 if out_dir is None:
-    st.title("Second Inspector")
+    st.title("Home Co-Inspector")
     st.write("Pick a processed room (replay) or upload a clip to analyze.")
     st.stop()
 st.title(f"Inspection: {out_dir.name}")
@@ -257,6 +257,8 @@ def report_page():
         rp = str(out_dir / "report.html")
     if rp:
         html = Path(rp).read_text(encoding="utf-8")
+        if report:
+            html = report.rebrand_legacy_report(html)
         st.download_button("Download report.html", html,
                            file_name=f"{out_dir.name}_report.html", mime="text/html")
         components.html(html, height=900, scrolling=True)

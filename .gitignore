@@ -16,3 +16,5 @@ data/processed/*
 !data/processed/garage_door_video/
 *.pdf
 !web/README.md
+
+/dist/

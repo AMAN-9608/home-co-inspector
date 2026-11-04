@@ -1,4 +1,4 @@
-# Second Inspector showcase
+# Home Co-Inspector showcase
 
 Run from the repository root:
 
@@ -10,13 +10,28 @@ Open http://127.0.0.1:8000. If you only want to review existing clips and do not
 
 The original Streamlit interface is still available with `uv run streamlit run app.py`. Both interfaces read the same processed recordings and save decisions in each recording's `review.json`.
 
-## Run on another laptop
+## GitHub Pages demo
 
-After the `packaging` branch has been pushed, install Git and uv, then run:
+This branch also builds a static demo that can be hosted on GitHub Pages. It uses the existing tracked garage findings and evidence images. The included 35-second silent video is a **montage of those evidence frames**, not the original walkthrough; the frame changes roughly match the findings' timestamps. It makes no model calls and has no real upload feature. Review decisions, added findings and signatures stay in the visitor's browser and can be removed by clearing site data. Reports are clearly marked as demos and are generated from the current browser-local decisions.
+
+Build and preview locally:
 
 ```sh
-git clone --branch packaging https://github.com/AMAN-9608/second-inspector.git
-cd second-inspector
+uv run python scripts/build_pages.py dist
+uv run python -m http.server 8767 --directory dist
+```
+
+Open http://localhost:8767/. The regular Python app continues to run with the command above. The build deliberately copies only the curated sample and selected evidence; it does not include `.env`, raw recordings, existing reviews, or other processed folders. The source material and generated Pages site are public when deployed, so review the sample images before publishing.
+
+To publish: push `github-pages-demo`, then under the repository's **Settings → Pages → Build and deployment**, select **GitHub Actions** as the source. The `GitHub Pages demo` workflow runs on pushes to this branch and can also be run manually. If the first run happened before Pages was configured, run it again from the Actions tab. The expected project URL is `https://aman-9608.github.io/home-co-inspector/`. GitHub Pages hosting availability depends on the repository's visibility and GitHub plan.
+
+## Run on another laptop
+
+After the `github-pages-demo` branch has been pushed, install Git and uv, then run:
+
+```sh
+git clone --branch github-pages-demo https://github.com/AMAN-9608/home-co-inspector.git
+cd home-co-inspector
 uv sync --locked
 uv run python -m secondinspector.webapp
 ```
@@ -37,7 +52,7 @@ Neither `pyproject.toml` nor `uv.lock` received new dependencies for this interf
 
 ## Showcase flow
 
-1. On **Home**, choose **Watch the demo** to replay the analysis of a processed clip, or **Upload a walkthrough** to analyze a new recording. The home figure is a real evidence frame annotated with what the inspector said, what SAM 3.1 found and whether a second AI pass agrees.
+1. On **Home** or **Clips**, open a saved clip to review it. In the local app, choose **Upload a walkthrough** to analyze a new recording. The home figure is a real evidence frame annotated with what the inspector said, what SAM 3.1 found and whether a second AI pass agrees.
 2. Review one finding at a time. The list on the left shows each finding's status and source (your narration, AI only, level sensor). The selected finding shows its evidence frame, your spoken quote, the evidence checks and **Accept**, **Edit** and **Reject**. After each decision the next undecided finding opens. Keyboard: J/K move, A accept, E edit, R reject. Use **Add missing finding** for anything the AI missed.
 3. When every finding has a decision, **Sign off on this clip** turns green. Enter your name and confirm.
 4. Open **Reports** to view a signed inspection, then **Print / Save as PDF**.

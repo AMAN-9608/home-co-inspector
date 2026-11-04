@@ -34,7 +34,7 @@ def test_landing_assets_are_served(tmp_path):
     response = request(tmp_path, 'GET', '/')
     # Assert
     assert response.status_code == 200
-    assert 'Second Inspector' in response.text
+    assert 'Home Co-Inspector' in response.text
     script = request(tmp_path, 'GET', '/app.js')
     assert script.status_code == 200
     assert 'property-strip' not in script.text and '123 Jane Doe Street' not in script.text

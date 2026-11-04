@@ -19,9 +19,11 @@ const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;
 const house = `<svg class="house-drawing" viewBox="0 0 420 290" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"><path d="m35 202 172-100 175 100-173 82z" opacity=".25"/><path d="m71 155 137-79 132 76v80l-133 77-136-78z" transform="translate(0 -30)" fill="#eef2f4"/><path d="m62 127 82-97 89 51 57-1 64 73-139 81z" fill="#e6ecef"/><path d="m144 30 90 52-82 98-90-53z" fill="#f7f9fa"/><path d="m152 180 63 24 139-81 M215 204v75 M152 180v61 M233 81l-18 123 M290 80l-57 1 M79 147v58l61 35v-59"/><path d="m166 198 31 18v46l-31-18z" fill="#fafbfb"/><path d="m244 191 28-16v36l-28 16z m43-25 28-16v36l-28 16z" fill="#dbe5ec"/><path d="m257 184 1 36 M244 209l28-16 M301 158v36 M287 184l28-16"/><path d="m87 155 35 21v31l-35-20z" fill="#dbe5ec"/><path d="m103 165 1 32 M87 171l35 20"/><path d="m125 77 17-20 61 35-17 20z M118 86l61 35 M111 96l61 35 M104 106l61 35 M97 116l61 35" opacity=".35"/><path d="m215 280 32 18 57-33 M71 208l-27 16 M340 202l35 21 M207 72V19" stroke-dasharray="3 4" opacity=".4"/><path d="m289 233 17-9v-31l13-8v31l17-10"/><path d="M350 206c17-27 12-47 5-46-7-1-14 28-5 46z M355 209v22" fill="#e1e8ec"/><path d="M53 188c-18-31-8-53-1-52 9-1 15 34 1 52z M52 190v31" fill="#e1e8ec"/><path d="m30 251 65-37 M326 263l65-37" stroke-dasharray="2 5" opacity=".35"/></g><g stroke="#c2302a" stroke-width="2"><circle cx="284" cy="161" r="11"/><circle cx="164" cy="148" r="11"/></g></svg>`;
 const main = document.querySelector('main');
 const modal = document.querySelector('#modal');
+if(window.pagesDemo)document.querySelector('.appbar-cta').remove();
 const state = { clips:[], page:'overview', clip:null, filter:'all', search:'', upload:null, focus:null, timers:[], analyzing:false, replay:false, stage:0, lastFocus:null };
 let toastTimer;
 async function api(url, options={}) {
+  if(window.pagesDemo)return window.pagesDemo.request(url, options);
   const response = await fetch(url, options);
   if (!response.ok) {
     let message = 'Could not reach the inspection server. Check that it is running, then try again.';
@@ -49,7 +51,7 @@ function navigation() {
   const links = [['overview','Home',0,''],['history','Clips',pending,'to review'],['reports','Reports',signed,'signed']];
   document.querySelector('#nav').innerHTML = links.map(([page, label, count, what]) => `<button class="nav-button ${section===page?'active':''}" data-action="nav" data-page="${page}" ${section===page?'aria-current="page"':''}>${label}${count?`<span class="count"><span class="sr">, </span>${count}<span class="sr"> ${what}</span></span>`:''}</button>`).join('');
   const titles={overview:'Home',history:'Clips',reports:'Reports',review:`Review ${state.clip?roomTitle(state.clip):''}`,analysis:'Analyzing',success:'Signed off',report:'Inspection report'};
-  document.title=`${titles[state.page]||'Home'} – Second Inspector`;
+  document.title=`${titles[state.page]||'Home'} – Home Co-Inspector`;
 }
 function view(html) {
   navigation();
@@ -73,7 +75,7 @@ function clipCard(clip) {
   const button = clip.signed_by ? `<button data-action="report" data-id="${esc(clip.id)}">View report</button>` : `<button class="primary" data-action="review" data-id="${esc(clip.id)}">${clip.pending?'Review findings':'Review and sign'}</button>`;
   return `<article class="clip-card"><div class="clip-thumb">${clip.thumbnail?`<img src="${esc(clip.thumbnail)}" alt="" loading="lazy">`:house}</div><div class="clip-main"><h3>${esc(roomTitle(clip))}</h3><p class="clip-file" title="${esc(clip.filename)}">${esc(clip.filename)}</p>${clipMeta(clip)}</div><p class="clip-status">${status}</p>${button}</article>`;
 }
-function empty(message='Your first walkthrough starts here.',description='Film a room on your phone and say what you see. Upload the clip and Second Inspector will find each defect in the footage.',action=`<button class="primary" data-action="analyze">${icon('upload')} Upload a walkthrough</button>`) {
+function empty(message='Your first walkthrough starts here.',description='Film a room on your phone and say what you see. Upload the clip and Home Co-Inspector will find each defect in the footage.',action=`<button class="primary" data-action="analyze">${icon('upload')} Upload a walkthrough</button>`) {
   return `<div class="empty">${icon('video')}<h3>${message}</h3><p>${description}</p>${action}</div>`;
 }
 function heroFigure() {
@@ -94,14 +96,14 @@ function story() {
 function overview() {
   state.page='overview';
   const awaiting = state.clips.filter(c=>!c.signed_by);
-  const actions = state.clips.length ? `<button class="primary" data-action="demo">${icon('play')} Watch the demo</button><button data-action="analyze">${icon('upload')} Upload a walkthrough</button>` : `<button class="primary" data-action="analyze">${icon('upload')} Upload a walkthrough</button>`;
+  const actions = window.pagesDemo ? '' : `<button class="primary" data-action="analyze">${icon('upload')} Upload a walkthrough</button>`;
   const queue = awaiting.length ? `<div class="sheet clip-list">${awaiting.map(clipCard).join('')}</div>` : state.clips.length ? `<div class="sheet">${empty('All caught up.','Every clip is signed off and its report is ready.',`<button class="primary" data-action="nav" data-page="reports">${icon('file')} View reports</button>`)}</div>` : `<div class="sheet">${empty()}</div>`;
-  view(`<section class="home-hero"><div class="home-copy"><h1>Turn a walkthrough video into a signed inspection report.</h1><p>Narrate while you film. AI finds each defect you mention in the footage, then looks for the ones you didn’t. You decide what goes in the report.</p><div class="hero-actions">${actions}</div></div>${heroFigure()}</section><section aria-labelledby="queue-title"><div class="section-head"><h2 id="queue-title">${awaiting.length?`${plural(awaiting.length,'clip')} to review`:'Clips to review'}</h2>${state.clips.length?'<button class="link" data-action="nav" data-page="history">All clips</button>':''}</div>${queue}</section>${story()}`);
+  view(`<section class="home-hero"><div class="home-copy"><h1>Turn a walkthrough video into a signed inspection report.</h1><p>${window.pagesDemo?'Explore saved sample findings and review each one. This demo uses a silent montage of evidence frames; no new analysis runs.':'Narrate while you film. AI finds each defect you mention in the footage, then looks for the ones you didn’t. You decide what goes in the report.'}</p>${actions?`<div class="hero-actions">${actions}</div>`:''}</div>${heroFigure()}</section><section aria-labelledby="queue-title"><div class="section-head"><h2 id="queue-title">${awaiting.length?`${plural(awaiting.length,'clip')} to review`:'Clips to review'}</h2>${state.clips.length?'<button class="link" data-action="nav" data-page="history">All clips</button>':''}</div>${queue}</section>${story()}`);
 }
 function history() {
   state.page='history';
   const filtered = state.clips.filter(c=>(state.filter==='all'||(state.filter==='pending'?!c.signed_by:!!c.signed_by))&&`${roomTitle(c)} ${c.title} ${c.filename}`.toLowerCase().includes(state.search.toLowerCase()));
-  view(`<div class="page-head"><div><h1>Clips</h1><p>Every walkthrough you have uploaded. Open one to review its findings or view its report.</p></div></div><div class="toolbar" role="group" aria-label="Filter clips">${[['all','All clips'],['pending','Needs review'],['signed','Signed off']].map(([key,label])=>`<button class="filter ${state.filter===key?'active':''}" aria-pressed="${state.filter===key}" data-action="filter" data-filter="${key}">${label}</button>`).join('')}<label class="search"><span class="sr">Search clips</span><input id="clip-search" type="search" aria-label="Search clips" placeholder="Search by room or file name…" value="${esc(state.search)}" spellcheck="false"></label></div>${filtered.length?`<div class="sheet clip-list">${filtered.map(clipCard).join('')}</div>`:`<div class="sheet">${empty('No clips here yet.','Try another filter, or upload a new walkthrough.')}</div>`}`);
+  view(`<div class="page-head"><div><h1>Clips</h1><p>Every walkthrough you have uploaded. Open one to review its findings or view its report.</p></div></div><div class="toolbar" role="group" aria-label="Filter clips">${[['all','All clips'],['pending','Needs review'],['signed','Signed off']].map(([key,label])=>`<button class="filter ${state.filter===key?'active':''}" aria-pressed="${state.filter===key}" data-action="filter" data-filter="${key}">${label}</button>`).join('')}<label class="search"><span class="sr">Search clips</span><input id="clip-search" type="search" aria-label="Search clips" placeholder="Search by room or file name…" value="${esc(state.search)}" spellcheck="false"></label></div>${filtered.length?`<div class="sheet clip-list">${filtered.map(clipCard).join('')}</div>`:`<div class="sheet">${empty('No clips here yet.',window.pagesDemo?'Try another filter or search.':'Try another filter, or upload a new walkthrough.',window.pagesDemo?'':undefined)}</div>`}`);
 }
 function reportsView() {
   state.page='reports';
@@ -127,8 +129,9 @@ function modalHeader(title,description) {
   return `<div class="modal-header"><div><h2 id="modal-title">${title}</h2><p>${description}</p></div><button class="close-button" data-action="close" aria-label="Close dialog">×</button></div>`;
 }
 function analyzeModal(mode='upload') {
+  if(window.pagesDemo)mode='replay';
   const replay=mode==='replay';
-  openOrUpdate(`${modalHeader('Start an inspection','Upload a walkthrough you narrated, or replay a clip that has already been analyzed.')}<div class="modal-tabs"><button class="${!replay?'active':''}" aria-pressed="${!replay}" data-action="analyze-tab" data-mode="upload">${icon('upload')} Upload a clip</button><button class="${replay?'active':''}" aria-pressed="${replay}" data-action="analyze-tab" data-mode="replay">${icon('play')} Replay a processed clip</button></div>${replay?`<label class="field">Walkthrough<select id="replay-clip">${state.clips.map(c=>`<option value="${esc(c.id)}">${esc(c.filename||c.id)} (${plural(c.findings.length,'finding')})</option>`).join('')}</select></label><div class="modal-info"><b>Demo replay.</b> Plays a short version of the analysis, then opens the saved findings. No models run, and your decisions and sign-offs are kept.</div>`:`<div class="upload-zone" id="drop-zone">${icon('upload')}<strong>Drop a video here</strong><small>MP4, MOV or M4V, up to 512 MB</small><button type="button" class="upload-choose" data-action="choose-upload">Choose file</button><small id="upload-filename">No file selected</small><input type="file" id="clip-upload" accept=".mp4,.mov,.m4v" aria-label="Walkthrough video" hidden></div><div class="modal-info">Say what you see while you film. We match your words to the video and look for anything you didn’t mention. Live analysis can take several minutes.</div>`}<p class="form-error" id="upload-error" role="alert"></p><div class="modal-actions"><button data-action="close">Cancel</button><button class="primary" data-action="${replay?'start-replay':'start-upload'}" ${replay&&!state.clips.length?'disabled':''}>${icon(replay?'play':'spark')} ${replay?'Start demo replay':'Start analysis'}</button></div>`);
+  openOrUpdate(`${modalHeader('Start an inspection',window.pagesDemo?'Replay the prepared sample and review its saved findings.':'Upload a walkthrough you narrated, or replay a clip that has already been analyzed.')}<div class="modal-tabs">${window.pagesDemo?'':`<button class="${!replay?'active':''}" aria-pressed="${!replay}" data-action="analyze-tab" data-mode="upload">${icon('upload')} Upload a clip</button>`}<button class="${replay?'active':''}" aria-pressed="${replay}" data-action="analyze-tab" data-mode="replay">${icon('play')} Replay a processed clip</button></div>${replay?`<label class="field">Walkthrough<select id="replay-clip">${state.clips.map(c=>`<option value="${esc(c.id)}">${esc(c.filename||c.id)} (${plural(c.findings.length,'finding')})</option>`).join('')}</select></label><div class="modal-info"><b>Demo replay.</b> Plays a short version of the analysis, then opens the saved findings. No models run, and your decisions and sign-offs are kept.</div>`:`<div class="upload-zone" id="drop-zone">${icon('upload')}<strong>Drop a video here</strong><small>MP4, MOV or M4V, up to 512 MB</small><button type="button" class="upload-choose" data-action="choose-upload">Choose file</button><small id="upload-filename">No file selected</small><input type="file" id="clip-upload" accept=".mp4,.mov,.m4v" aria-label="Walkthrough video" hidden></div><div class="modal-info">Say what you see while you film. We match your words to the video and look for anything you didn’t mention. Live analysis can take several minutes.</div>`}<p class="form-error" id="upload-error" role="alert"></p><div class="modal-actions"><button data-action="close">Cancel</button><button class="primary" data-action="${replay?'start-replay':'start-upload'}" ${replay&&!state.clips.length?'disabled':''}>${icon(replay?'play':'spark')} ${replay?'Start demo replay':'Start analysis'}</button></div>`);
   state.upload=null;
 }
 function openOrUpdate(content) { if(modal.open) modal.innerHTML=content; else openModal(content); }
@@ -186,7 +189,7 @@ function findingRow(f) {
 }
 function focusMedia(c) {
   const f=c.findings.find(x=>x.id===state.focus);
-  if(c.video)return `<video id="evidence-video" src="${esc(c.video)}" ${c.thumbnail?`poster="${esc(c.thumbnail)}"`:''} controls playsinline preload="metadata"></video>`;
+  if(c.video&&(!window.pagesDemo||f?.t_start!=null))return `<video id="evidence-video" src="${esc(c.video)}" ${c.thumbnail?`poster="${esc(c.thumbnail)}"`:''} controls playsinline preload="metadata"></video>`;
   return f?.image?`<img ${f.source==='sensor'?'class="chart" ':''}src="${esc(f.image)}" alt="${f.source==='sensor'?'Level reading':'Evidence frame'}: ${esc(findingTitle(f))}">`:`<div class="placeholder">${icon('video')}<p>${f?.source==='inspector'?'You added this finding during review, so there is no frame.':'No evidence frame for this finding.'}</p></div>`;
 }
 function said(f) {
@@ -217,7 +220,8 @@ function selectFinding(id,scroll=false) {
   const row=document.querySelector(`#finding-${CSS.escape(id)}`);
   row?.classList.add('focused');row?.setAttribute('aria-current','true');
   const f=state.clip.findings.find(x=>x.id===id);
-  if(state.clip.video){const video=document.querySelector('#evidence-video');if(video&&f?.t_start!=null)video.currentTime=f.t_start;}
+  if(window.pagesDemo){document.querySelector('#focus-media').innerHTML=focusMedia(state.clip);const video=document.querySelector('#evidence-video');if(video&&f?.t_start!=null)video.currentTime=f.t_start;}
+  else if(state.clip.video){const video=document.querySelector('#evidence-video');if(video&&f?.t_start!=null)video.currentTime=f.t_start;}
   else document.querySelector('#focus-media').innerHTML=focusMedia(state.clip);
   document.querySelector('#evidence-note').hidden=!(f?.located&&!state.clip.video);
   document.querySelector('#focus-detail').innerHTML=focusDetail(state.clip);
@@ -298,7 +302,8 @@ async function openReport(id) {
   if(c.has_level) sections.push('Floor level measurements');
   if(Object.keys(c.coverage||{}).length) sections.push('Coverage checklist');
   sections.push('Items not inspected & limitations');
-  view(`<div class="page-head"><div><h1>Inspection report</h1><p>${esc(roomTitle(c))}, signed by ${esc(c.signed_by)} on ${date(c.signed_at)}.</p></div><button class="link" data-action="nav" data-page="reports">${icon('back')} All reports</button></div><div class="report-layout"><aside class="report-aside"><div><h2>In this report</h2><ol>${sections.map(label=>`<li>${label}</li>`).join('')}</ol></div><button class="primary" data-action="print-report">${icon('download')} Print / Save as PDF</button></aside><div class="report-paper"><iframe title="Signed inspection report" src="${clipURL(c,'report')}"></iframe></div></div>`);
+  const reportSource=window.pagesDemo?`srcdoc="${esc(window.pagesDemo.report(c))}"`:`src="${clipURL(c,'report')}"`;
+  view(`<div class="page-head"><div><h1>Inspection report</h1><p>${esc(roomTitle(c))}, signed by ${esc(c.signed_by)} on ${date(c.signed_at)}.</p></div><button class="link" data-action="nav" data-page="reports">${icon('back')} All reports</button></div><div class="report-layout"><aside class="report-aside"><div><h2>In this report</h2><ol>${sections.map(label=>`<li>${label}</li>`).join('')}</ol></div><button class="primary" data-action="print-report">${icon('download')} Print / Save as PDF</button></aside><div class="report-paper"><iframe title="Signed inspection report" ${reportSource}></iframe></div></div>`);
 }
 async function submitForm(form) {
   const button=form.querySelector('[type=submit]');
@@ -335,7 +340,6 @@ document.addEventListener('click',async e=>{
       case 'filter': state.filter=button.dataset.filter;history();break;
       case 'analyze': if(state.analyzing){state.page='analysis';analysisScreen(state.replay,state.stage);notify('An analysis is already running.');}else analyzeModal();break;
       case 'analyze-tab': analyzeModal(button.dataset.mode);break;
-      case 'demo': if(state.analyzing){state.page='analysis';analysisScreen(state.replay,state.stage);}else if(state.clips[0])await startReplay(state.clips[0].id);else analyzeModal('replay');break;
       case 'close':closeModal();break;
       case 'start-replay':await startReplay();break;
       case 'start-upload':await startUpload(button);break;
