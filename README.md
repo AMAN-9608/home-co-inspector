@@ -9,7 +9,7 @@ Home Co-Inspector turns narrated home-inspection videos into findings with visua
 Install [Git](https://git-scm.com/downloads) and [uv](https://docs.astral.sh/uv/getting-started/installation/), then run from a terminal:
 
 ```sh
-git clone --branch github-pages-demo https://github.com/AMAN-9608/home-co-inspector.git
+git clone https://github.com/AMAN-9608/home-co-inspector.git
 cd home-co-inspector
 uv sync --locked
 ```

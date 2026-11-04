@@ -177,3 +177,9 @@ def test_india_snag_card_uses_snageasy_analysis_and_shortened_copy():
     assert 'SnagEasy’s analysis found an average of 101 defects per inspected property across Indian metro cities.' in about
     assert 'https://www.snageasy.in/blog/why-home-inspection-needed-new-flat-defects' in about
     assert 'Nemmadi reports routinely finding' not in about
+
+
+def test_pages_deploys_on_main():
+    workflow = (ROOT / '.github/workflows/pages.yml').read_text()
+    assert 'branches: [main]' in workflow
+    assert 'branches: [github-pages-demo]' not in workflow

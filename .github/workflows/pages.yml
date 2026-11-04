@@ -2,7 +2,7 @@ name: GitHub Pages demo
 
 on:
   push:
-    branches: [github-pages-demo]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
