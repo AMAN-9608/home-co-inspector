@@ -50,3 +50,26 @@ def test_pages_browser_review_contract():
 
     # Act and assert
     subprocess.run(['node', str(contract)], cwd=ROOT, check=True)
+
+
+def test_about_explains_impact_and_meta_pipeline():
+    about = (ROOT / 'web/about.html').read_text()
+    for text in ('Why this matters', 'United States', 'India', 'Muse Spark', 'SAM 3.1', 'jchs.harvard.edu', 'niua.in', 'first-pass'):
+        assert text in about
+
+
+def test_about_follows_product_audience_impact_workflow_order():
+    about = (ROOT / 'web/about.html').read_text()
+    sections = ['id="hero-title"', 'id="who"', 'id="impact"', 'id="meta"']
+    positions = [about.index(section) for section in sections]
+    assert positions == sorted(positions)
+    audience = about[about.index('id="who"'):about.index('id="impact"')]
+    assert 'USA' in audience and 'India' in audience
+
+
+def test_about_uses_market_examples_and_housing_quality_without_workflow():
+    about = (ROOT / 'web/about.html').read_text()
+    assert 'Developed countries · e.g. USA' in about
+    assert 'Developing countries · e.g. India' in about
+    assert '12.2%' in about and '2018' in about
+    assert 'id="how"' not in about and 'href="#how"' not in about
