@@ -54,16 +54,16 @@ def test_pages_browser_review_contract():
 
 def test_about_explains_impact_and_meta_pipeline():
     about = (ROOT / 'web/about.html').read_text()
-    for text in ('Why this matters', 'United States', 'India', 'Muse Spark', 'SAM 3.1', 'jchs.harvard.edu', 'niua.in', 'first-pass'):
+    for text in ('Why this matters', 'USA', 'India', 'Muse Spark', 'SAM 3.1', 'angi.com', 'nemmadi.in'):
         assert text in about
 
 
 def test_about_follows_product_audience_impact_workflow_order():
     about = (ROOT / 'web/about.html').read_text()
-    sections = ['id="hero-title"', 'id="who"', 'id="impact"', 'id="meta"']
+    sections = ['id="hero-title"', 'id="who"', 'id="impact"', 'id="impact-us"', 'id="impact-india"', 'id="meta"']
     positions = [about.index(section) for section in sections]
     assert positions == sorted(positions)
-    audience = about[about.index('id="who"'):about.index('id="impact"')]
+    audience = about[about.index('id="who"'):about.index('id="meta"')]
     assert 'USA' in audience and 'India' in audience
 
 
@@ -71,5 +71,35 @@ def test_about_uses_market_examples_and_housing_quality_without_workflow():
     about = (ROOT / 'web/about.html').read_text()
     assert 'Developed countries · e.g. USA' in about
     assert 'Developing countries · e.g. India' in about
-    assert '12.2%' in about and '2018' in about
+    assert '41%' in about and '100+' in about
+    us = about[about.index('id="impact-us"'):about.index('id="impact-india"')]
+    india = about[about.index('id="impact-india"'):about.index('id="meta"')]
+    assert '41%' in us and 'angi.com' in us
+    assert '100+' in india and 'nemmadi.in' in india
     assert 'id="how"' not in about and 'href="#how"' not in about
+
+
+def test_impact_keeps_two_data_points_per_market():
+    about = (ROOT / 'web/about.html').read_text()
+    us = about[about.index('id="impact-us"'):about.index('id="impact-india"')]
+    india = about[about.index('id="impact-india"'):about.index('id="meta"')]
+    assert us.count('<strong>') == 2
+    assert india.count('<strong>') == 2
+    assert 'href="#impact"' in about
+
+
+def test_impact_removes_requested_copy_and_card_labels():
+    import re
+    about = (ROOT / 'web/about.html').read_text()
+    for removed in ('Turn recorded walkthroughs into structured findings and visual evidence, with the reviewer in control.', 'Structural assessments, concealed defects', 'It is not an estimate of costs our product could prevent.', 'This is not a defect rate specific to new builds or rentals.', 'This is one published price for an on-site professional service, whose scope exceeds a video review.', 'This is one provider’s experience, rather than a national average.', '$611B', '12.2%'):
+        assert removed not in about
+    impact = about[about.index('id="impact"'):about.index('id="meta"')]
+    cards = re.findall(r'<article>(.*?)</article>', impact, re.S)
+    assert len(cards) == 4
+    assert all('class="eyebrow"' not in card for card in cards)
+
+
+def test_meta_section_omits_removed_explanatory_copy():
+    about = (ROOT / 'web/about.html').read_text()
+    for removed in ('The coverage checklist reuses SAM searches', 'Try the actual review experience below.', 'It can return uncertain or not visible.'):
+        assert removed not in about
