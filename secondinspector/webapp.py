@@ -16,6 +16,34 @@ WEB = Path(__file__).resolve().parent.parent / 'web'
 MAX_UPLOAD = 512 * 1024 * 1024
 logger = logging.getLogger(__name__)
 MEDIA_TYPES = {'.jpg', '.jpeg', '.png', '.webp', '.svg', '.mp4', '.mov', '.m4v'}
+# Only loopback names, so a DNS-rebound attacker domain pointing at 127.0.0.1 is refused.
+ALLOWED_HOSTS = {'localhost', '127.0.0.1', '[::1]'}
+# An SVG opened directly runs on this origin; never let it run script.
+SVG_CSP = (b'content-security-policy', b"default-src 'none'; style-src 'unsafe-inline'; sandbox")
+
+
+def host_name(host):
+    host = host.decode('latin-1').lower()
+    return host[:host.find(']') + 1] if host.startswith('[') else host.split(':')[0]
+
+
+def check_request(method, headers):
+    """Raise ValueError for requests that did not come from this app's own pages."""
+    host = headers.get(b'host', b'')
+    if host_name(host) not in ALLOWED_HOSTS:
+        raise ValueError('Open the app at http://localhost or http://127.0.0.1')
+    if method != 'POST':
+        return
+    # Browsers without Sec-Fetch-Site still send Origin; scripts and curl send neither.
+    if headers.get(b'sec-fetch-site', b'same-origin') not in (b'same-origin', b'none'):
+        raise ValueError('Cross-site requests are not allowed')
+    origin = headers.get(b'origin')
+    if origin is not None and origin.split(b'://', 1)[-1] != host:
+        raise ValueError('Cross-site requests are not allowed')
+
+
+class JobRunning(Exception):
+    pass
 
 
 def provenance(raw):
@@ -108,8 +136,7 @@ class Workspace:
         status, body, content_type = 200, b'', 'application/json'
         extra_headers = []
         try:
-            if method == 'POST' and headers.get(b'sec-fetch-site') == b'cross-site':
-                raise ValueError('Cross-site requests are not allowed')
+            check_request(method, headers)
             payload = bytearray()
             if method == 'POST':
                 while True:
@@ -148,6 +175,8 @@ class Workspace:
                         body = stream.read(end - start + 1)
                     content_type = mimetypes.guess_type(asset.name)[0] or 'application/octet-stream'
                     extra_headers.append((b'accept-ranges', b'bytes'))
+                    if asset.suffix.lower() == '.svg':
+                        extra_headers.append(SVG_CSP)
             elif method == 'GET' and path == '/api/clips':
                 body = [self.detail(folder) for folder in ui_helpers.discover_processed(self.processed)]
             elif method == 'GET' and path.startswith('/api/jobs/'):
@@ -162,6 +191,8 @@ class Workspace:
                 filename = headers.get(b'x-filename', b'').decode('utf-8')
                 if Path(filename).suffix.lower() not in {'.mp4', '.mov', '.m4v'} or not payload:
                     raise ValueError('Choose a nonempty MP4, MOV, or M4V clip')
+                if any(job['status'] == 'running' for job in self.jobs.values()):
+                    raise JobRunning('An analysis is already running. Wait for it to finish, then upload the next clip.')
                 raw = self.root / 'data/raw'
                 raw.mkdir(parents=True, exist_ok=True)
                 safe_name = re.sub(r'[^A-Za-z0-9_-]', '-', Path(filename).stem)[:80] or 'clip'
@@ -203,6 +234,8 @@ class Workspace:
                 raise FileNotFoundError('Not found')
         except FileNotFoundError:
             status, body = 404, {'error': 'Not found'}
+        except JobRunning as error:
+            status, body = 409, {'error': str(error)}
         except (ValueError, KeyError, TypeError) as error:
             status, body = 400, {'error': str(error)}
         except Exception:
