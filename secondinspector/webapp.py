@@ -1,4 +1,4 @@
-"""Local showcase: uv run python -m secondinspector.webapp (Streamlit remains available)."""
+"""Home Co-Inspector: uv run --env-file .env python -m secondinspector.webapp."""
 import argparse
 import asyncio
 import json

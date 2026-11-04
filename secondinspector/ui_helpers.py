@@ -1,4 +1,4 @@
-"""Pure helpers for the Streamlit app (no streamlit import)."""
+"""Pure inspection UI helpers, including processed-clip discovery."""
 from __future__ import annotations
 
 import json

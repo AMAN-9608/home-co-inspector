@@ -22,8 +22,8 @@ def test_local_web_pages_use_home_co_inspector(tmp_path):
     asyncio.run(run())
 
 
-def test_streamlit_labels_use_home_co_inspector():
-    text = (ROOT / 'app.py').read_text(encoding='utf-8')
+def test_web_entrypoint_labels_use_home_co_inspector():
+    text = (ROOT / 'web/index.html').read_text(encoding='utf-8')
     assert 'Home Co-Inspector' in text
     assert 'Second Inspector' not in text
 
