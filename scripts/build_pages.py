@@ -14,18 +14,24 @@ SOURCE = ROOT / 'data/processed/garage_door_video'
 
 def build(output):
     output = Path(output)
-    demo = output / 'demo'
+    app = output / 'demo'
+    demo = app / 'demo'
     evidence = demo / 'evidence'
     evidence.mkdir(parents=True, exist_ok=True)
+    (output / 'about').mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROOT / 'web/about.html', output / 'about/index.html')
+    (output / 'index.html').write_text('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./about/"><title>Home Co-Inspector</title></head><body><a href="./about/">About Home Co-Inspector</a></body></html>', encoding='utf-8')
     for filename in ('app.js', 'pages.js', 'styles.css'):
-        shutil.copyfile(ROOT / 'web' / filename, output / filename)
+        shutil.copyfile(ROOT / 'web' / filename, app / filename)
     shutil.copyfile(ROOT / 'web/demo/evidence-montage.mp4', demo / 'evidence-montage.mp4')
     html = (ROOT / 'web/index.html').read_text(encoding='utf-8')
     html = html.replace('href="/styles.css"', 'href="./styles.css"')
     html = html.replace('<script src="/app.js" defer></script>', '<script src="./pages.js" defer></script>\n  <script src="./app.js" defer></script>')
     html = html.replace('href="/" aria-label="Home Co-Inspector home"', 'href="./" aria-label="Home Co-Inspector home"')
+    html = html.replace('<button class="primary appbar-cta"', '<a class="about-product" href="../about/">About the product</a>\n    <button class="primary appbar-cta"')
+    html = html.replace('</head>', '<style>.about-product{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 19px;margin-left:auto;border:1px solid #1c2328;border-radius:4px;background:#1c2328;color:white;text-decoration:none;font-size:13px;font-weight:700;transition:background-color 160ms ease,transform 140ms ease}.about-product:hover{background:#33444f}.about-product:active{transform:scale(.97)}.appbar-cta{margin-left:0}@media(max-width:720px){.about-product{min-height:39px;padding:9px 12px;font-size:11px}}@media(prefers-reduced-motion:reduce){.about-product{transition:none}}</style>\n</head>')
     html = html.replace('<main id="main"', '<div class="demo-banner" role="note">DEMO · Saved sample findings. The silent clip is a montage of evidence frames; no new analysis runs. Your decisions stay in this browser.</div>\n  <main id="main"')
-    (output / 'index.html').write_text(html, encoding='utf-8')
+    (app / 'index.html').write_text(html, encoding='utf-8')
     (output / '.nojekyll').touch()
 
     raw = json.loads((SOURCE / 'findings.json').read_text(encoding='utf-8'))

@@ -29,6 +29,15 @@ with tempfile.TemporaryDirectory() as directory:
             page.on('request', lambda req: api_requests.append(req.url) if '/api/' in req.url else None)
             page.on('response', lambda res: failed.append(res.url) if res.status >= 400 and '127.0.0.1:8767' in res.url else None)
             page.goto('http://127.0.0.1:8767/home-co-inspector/')
+            page.get_by_role('heading', name='A closer look at every walkthrough.').wait_for()
+            assert '/about/' in page.url
+            assert page.locator('.frame img').evaluate('(img) => img.complete && img.naturalWidth > 0')
+            page.get_by_role('link', name='Try the demo', exact=False).first.click()
+            page.get_by_role('heading', name='Turn a walkthrough video into a signed inspection report.').wait_for()
+            assert '/demo/' in page.url
+            page.get_by_role('link', name='About the product').click()
+            page.get_by_role('heading', name='A closer look at every walkthrough.').wait_for()
+            page.get_by_role('link', name='Try the demo', exact=False).first.click()
             page.get_by_role('heading', name='Turn a walkthrough video into a signed inspection report.').wait_for()
             assert page.get_by_role('link', name='Home Co-Inspector home').is_visible()
             assert page.get_by_role('button', name='Watch the demo', exact=False).count() == 0

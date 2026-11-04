@@ -17,19 +17,27 @@ def test_pages_build_contains_only_curated_demo_data(tmp_path):
     subprocess.run([sys.executable, str(builder), str(output)], cwd=ROOT, check=True)
 
     # Assert
-    html = (output / 'index.html').read_text()
-    data = json.loads((output / 'demo/sample.json').read_text())
+    root = (output / 'index.html').read_text()
+    about = (output / 'about/index.html').read_text()
+    demo = output / 'demo'
+    html = (demo / 'index.html').read_text()
+    data = json.loads((demo / 'demo/sample.json').read_text())
+    assert 'url=./about/' in root.lower()
+    assert '../demo/' in about and '../demo/demo/evidence/spoken-1-f42.jpg' in about
+    assert 'Archivo' in about and 'Manrope' not in about and 'DM+Sans' not in about
+    assert 'Local preview' not in about
+    assert 'href="../about/"' in html and 'About the product' in html
     assert './pages.js' in html and './app.js' in html and './styles.css' in html
     assert 'href="./" aria-label="Home Co-Inspector home"' in html
     assert 'DEMO' in html and '.env' not in html
     assert 'Home Co-Inspector' in html and 'Second Inspector' not in html
-    assert 'Home Co-Inspector' in (output / 'app.js').read_text()
-    assert 'Second Inspector' not in (output / 'app.js').read_text()
+    assert 'Home Co-Inspector' in (demo / 'app.js').read_text()
+    assert 'Second Inspector' not in (demo / 'app.js').read_text()
     assert data['signed_by'] is None and data['signed_at'] is None
     assert all(f['decision'] == 'pending' for f in data['findings'])
     assert data['video'] == 'demo/evidence-montage.mp4'
-    assert (output / data['video']).is_file()
-    assert all((output / f['image']).is_file() for f in data['findings'] if f.get('image'))
+    assert (demo / data['video']).is_file()
+    assert all((demo / f['image']).is_file() for f in data['findings'] if f.get('image'))
     assert 'Martha Brokaw' not in json.dumps(data)
     assert '/Users/' not in json.dumps(data) and 'data/raw/' not in json.dumps(data)
     assert not (output / '.env').exists() and not list(output.rglob('review.json'))
