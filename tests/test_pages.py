@@ -157,3 +157,19 @@ def test_demo_hero_names_wonder_for_independent_review():
     app = (ROOT / 'web/app.js').read_text()
     assert 'Muse Wonder flagged the same defect on its own' in app
     assert 'The independent video review flagged the same issue' not in app
+
+
+def test_inspection_price_card_uses_dollars_and_approved_copy():
+    about = (ROOT / 'web/about.html').read_text()
+    assert '<strong>$100+</strong>' in about
+    assert 'Professional apartment inspection cost' in about
+    assert 'Professional apartment inspections can cost $100 or more, depending on property size and package.' in about
+    assert '₹8,000' not in about
+
+
+def test_india_snag_card_uses_snageasy_analysis_and_shortened_copy():
+    about = (ROOT / 'web/about.html').read_text()
+    assert 'Average defects per inspected new apartment' in about
+    assert 'SnagEasy’s analysis found an average of 101 defects per inspected property across Indian metro cities.' in about
+    assert 'https://www.snageasy.in/blog/why-home-inspection-needed-new-flat-defects' in about
+    assert 'Nemmadi reports routinely finding' not in about
