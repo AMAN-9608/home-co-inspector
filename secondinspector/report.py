@@ -222,36 +222,36 @@ def signature(review):
 CSS = """
 body{font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1f2933;background:#fff;margin:0}
 main{max-width:900px;margin:0 auto;padding:32px 24px}
-header{border-bottom:3px solid #254e3c;padding-bottom:16px;margin-bottom:8px}
-header h1{margin:0;color:#254e3c;font-size:28px}
+header{border-bottom:3px solid #1c2328;padding-bottom:16px;margin-bottom:8px}
+header h1{margin:0;color:#1c2328;font-size:28px}
 .prop{color:#52606d;margin:4px 0}
 .draft,.signed{display:inline-block;margin-top:8px;padding:6px 12px;border-radius:4px;font-weight:600}
-.draft{background:#fdecea;color:#b3261e;border:1px solid #f5c2bd}
-.signed{background:#e6f4ea;color:#1e6b34;border:1px solid #b7dfc2}
-h2{color:#254e3c;border-bottom:1px solid #dce3d5;padding-bottom:4px;margin-top:32px}
-h3{margin:24px 0 8px;color:#334e68}
-h4.room{color:#627d98;text-transform:uppercase;font-size:13px;letter-spacing:.05em}
+.draft{background:#fdecea;color:#c2302a;border:1px solid #f5c2bd}
+.signed{background:#e2f2e8;color:#1f7a4d;border:1px solid #a9d3b9}
+h2{color:#1c2328;border-bottom:1px solid #d3dadd;padding-bottom:4px;margin-top:32px}
+h3{margin:24px 0 8px;color:#2c3740}
+h4.room{color:#55606a;text-transform:uppercase;font-size:13px;letter-spacing:.05em}
 .stats{display:flex;flex-wrap:wrap;gap:12px}
-.stat{border:1px solid #dce3d5;border-radius:6px;padding:10px 14px;min-width:110px;font-size:13px;color:#52606d}
+.stat{border:1px solid #d3dadd;border-radius:6px;padding:10px 14px;min-width:110px;font-size:13px;color:#52606d}
 .stat b{display:block;font-size:22px;color:#1f2933}
-.finding{display:flex;gap:16px;border:1px solid #dce3d5;border-radius:6px;padding:12px;margin:10px 0;break-inside:avoid}
+.finding{display:flex;gap:16px;border:1px solid #d3dadd;border-radius:6px;padding:12px;margin:10px 0;break-inside:avoid}
 .finding .img{flex:0 0 280px}.finding img{width:100%;border-radius:4px}
-.noimg{background:#f1f4eb;color:#829ab1;height:160px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.noimg{background:#eef1f2;color:#5f6b74;height:160px;display:flex;align-items:center;justify-content:center;border-radius:4px}
 .finding h4{margin:0 0 6px;text-transform:capitalize}.finding p{margin:6px 0;font-size:14px}
 .meta{display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
 .badge{padding:2px 8px;border-radius:10px;font-weight:600;color:#fff}
-.badge.spoken{background:#254e3c}.badge.unspoken{background:#8e44ad}.badge.sensor{background:#c77700}.badge.inspector{background:#1e6b34}
-.ts,.status{color:#52606d;background:#f1f4eb;padding:2px 8px;border-radius:10px}
+.badge.spoken{background:#1c2328}.badge.unspoken{background:#1d6aae}.badge.sensor{background:#55606a}.badge.inspector{background:#1f7a4d}
+.ts,.status{color:#52606d;background:#eef1f2;padding:2px 8px;border-radius:10px}
 .quote{color:#52606d;font-style:italic}
-.unconfirmed{color:#b3261e;font-weight:600;font-size:13px}
+.unconfirmed{color:#c2302a;font-weight:600;font-size:13px}
 table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{border:1px solid #dce3d5;padding:6px 10px;text-align:left}th{background:#f1f4eb}
-.cov.not_seen{color:#b3261e;font-weight:600}.cov.seen_not_mentioned{color:#c77700}
+th,td{border:1px solid #d3dadd;padding:6px 10px;text-align:left}th{background:#eef1f2}
+.cov.not_seen{color:#c2302a;font-weight:600}.cov.seen_not_mentioned{color:#55606a}
 .level svg{max-width:100%;height:auto}
 .limits{font-size:13px;color:#52606d}
-.method{font-size:14px;color:#334e68;background:#f6f8f1;border-left:3px solid #254e3c;padding:10px 14px;margin:8px 0 14px}
-footer{margin-top:40px;border-top:1px solid #dce3d5;padding-top:12px;font-size:12px;color:#829ab1}
-.contents{padding:8px 18px 14px;background:#f6f8f1;border:1px solid #e0e6d7;border-radius:6px;margin-top:22px}.contents h2{border:0;margin:12px 0 6px;font-size:17px}.contents ol{columns:2;font-size:12px;line-height:2;color:#61734e;padding-left:20px}.contents a{color:inherit;text-decoration:none}
+.method{font-size:14px;color:#2c3740;background:#f3f5f4;border-left:3px solid #1c2328;padding:10px 14px;margin:8px 0 14px}
+footer{margin-top:40px;border-top:1px solid #d3dadd;padding-top:12px;font-size:12px;color:#5f6b74}
+.contents{padding:8px 18px 14px;background:#f3f5f4;border:1px solid #e1e6e8;border-radius:6px;margin-top:22px}.contents h2{border:0;margin:12px 0 6px;font-size:17px}.contents ol{columns:2;font-size:12px;line-height:2;color:#55606a;padding-left:20px}.contents a{color:inherit;text-decoration:none}
 @media (max-width:640px){.finding{flex-direction:column}.finding .img{flex:none}}
 @media print{main{max-width:none;padding:0}h2{break-after:avoid}.finding{flex-direction:row}
 .badge,.draft,.signed,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:16mm}}
