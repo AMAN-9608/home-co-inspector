@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="190" font-family="sans-serif" font-size="12">
+<text x="8" y="18" font-weight="bold">Living room (threshold 0.45 deg)</text>
+<circle cx="80" cy="100" r="8" fill="#2ca02c"/>
+<line x1="80" y1="100" x2="80.0" y2="70.0" stroke="#2ca02c" stroke-width="3"/>
+<circle cx="80.0" cy="70.0" r="3" fill="#2ca02c"/>
+<text x="80" y="40" text-anchor="middle">window</text>
+<text x="80" y="160" text-anchor="middle">0.30 deg</text>
+<circle cx="240" cy="100" r="8" fill="#d62728"/>
+<line x1="240" y1="100" x2="190.0" y2="100.0" stroke="#d62728" stroke-width="3"/>
+<circle cx="190.0" cy="100.0" r="3" fill="#d62728"/>
+<text x="240" y="40" text-anchor="middle">east wall</text>
+<text x="240" y="160" text-anchor="middle">0.90 deg</text>
+</svg>

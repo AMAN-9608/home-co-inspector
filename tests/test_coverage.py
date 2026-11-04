@@ -62,15 +62,6 @@ def test_top_tracks_rank_by_frames_seen_then_confidence():
     assert [(d.object_id, d.frame) for d in best] == [("a", 2), ("b", 3)]
 
 
-def test_top_tracks_show_the_biggest_view_when_confidence_ties():
-    # SAM gives a whole track one confidence; the first frame is often a sliver at the frame edge.
-    sliver = sam.Detection("smoke detector", 28, "0", (0, 245, 32, 330), 0.84)
-    close = sam.Detection("smoke detector", 34, "0", (242, 455, 430, 636), 0.84)
-    far = sam.Detection("smoke detector", 44, "0", (133, 883, 234, 980), 0.84)
-    [best] = coverage.top_tracks([sliver, close, far], 0.0, 23.0, limit=1)
-    assert best.frame == 34
-
-
 def test_status_order():
     assert coverage.status(seen=True, said=True, tested=True) == "tested"
     assert coverage.status(seen=True, said=True, tested=False) == "inspected"
@@ -156,29 +147,6 @@ def test_check_reports_each_room_and_the_house(monkeypatch, tmp_path):
     assert [(i["item"], i["status"]) for i in house["items"]] == [("electrical_panel", "not_seen")]
 
 
-def test_detector_outside_a_required_room_is_still_looked_for_and_reported(monkeypatch, tmp_path):
-    asked = []
-    monkeypatch.setattr(coverage.verify, "render", fake_render)
-
-    def fake_check(client, candidates):
-        asked.extend(c["question"] for c in candidates)
-        return [{"verdict": "yes" if c["item"] == "smoke_detector" else "no", "gfci": "n/a", "note": ""}
-                for c in candidates]
-
-    monkeypatch.setattr(coverage, "check_candidates", fake_check)
-    inspector = FakeInspector(tmp_path, {"smoke detector": [detection(30, "s1")]})
-    observed = [said(1.0, "I'm in the kitchen, this is the sprinkler", "kitchen", kind="room_change")]
-
-    kitchen, _house = asyncio.run(coverage.check(inspector, observed, coverage.rooms_from(observed, 23.0)))
-
-    items = {i["item"]: i for i in kitchen["items"]}
-    assert items["smoke_detector"]["status"] == "seen_not_mentioned"
-    assert not items["smoke_detector"]["expected"]
-    assert items["smoke_detector"]["evidence"]["frame"] == 30
-    assert "exhaust_fan" not in items
-    assert any("heat" in question for question in asked)
-
-
 def test_pipeline_writes_coverage_and_tags_unspoken_candidates_with_their_room(monkeypatch, tmp_path):
     from contextlib import asynccontextmanager
 
@@ -210,7 +178,13 @@ def test_pipeline_writes_coverage_and_tags_unspoken_candidates_with_their_room(m
     monkeypatch.setattr(pipeline.asr, "transcribe", lambda wav: {"turns": [], "transcript": ""})
     monkeypatch.setattr(pipeline.api, "sync_client", lambda: None)
     monkeypatch.setattr(pipeline.api, "async_client", fake_client)
-    monkeypatch.setattr(pipeline.api, "spark_json", lambda *args: {"candidates": [candidate]})
+    second_look_models = []
+
+    def fake_second_look(*args, model=None):
+        second_look_models.append(model)
+        return {"candidates": [candidate]}
+
+    monkeypatch.setattr(pipeline.api, "spark_json", fake_second_look)
     monkeypatch.setattr(pipeline.sam, "upload_video", fake_upload)
     monkeypatch.setattr(pipeline.observations, "extract", lambda spark, turns: observed)
     monkeypatch.setattr(pipeline.Inspector, "find_evidence", fake_evidence)
@@ -225,3 +199,4 @@ def test_pipeline_writes_coverage_and_tags_unspoken_candidates_with_their_room(m
     assert [r["room"] for r in findings["coverage"]] == ["bedroom", "bathroom"]
     assert (out / "walk" / "coverage.json").exists()
     assert findings["unspoken"][0]["room"] == "bathroom"
+    assert second_look_models == ["muse-wonder-1.0"]

@@ -1,0 +1,8 @@
+{"clip": "x.mp4", "transcript": "cracks along the door",
+ "spoken": [{"room": "first floor", "sop_section": "Interior", "component_phrase": "door", "defect_phrase": "crack",
+   "utterance": "cracks along the door", "t_start": 10.6, "t_end": 12.9, "frame": 23, "box": null,
+   "status": "uncertain", "description": "Thin seam beside door frame.", "evidence_path": "evidence/e.jpg", "source": "spoken"}],
+ "unspoken": [{"room": "first floor", "component_phrase": "wall", "defect_phrase": "scuff", "utterance": "",
+   "t_start": 30.0, "t_end": 33.5, "frame": 64, "box": null, "status": "uncertain",
+   "description": "Faint diagonal mark above baseboard.", "evidence_path": "missing.jpg", "source": "unspoken"}],
+ "unspoken_covered_or_rejected": []}

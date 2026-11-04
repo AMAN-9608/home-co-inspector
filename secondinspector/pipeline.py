@@ -6,23 +6,12 @@ import shutil
 from dataclasses import asdict
 from pathlib import Path
 
-from secondinspector import (
-    alarm,
-    align,
-    api,
-    asr,
-    coverage,
-    media,
-    observations,
-    sam,
-    verify,
-)
+from secondinspector import align, api, asr, coverage, media, observations, sam, verify
 
 # A box covering most of the frame ("wall", "door") does not localise anything useful.
 MAX_BOX_FRACTION = 0.4
 # More parallel SAM streams than this started timing out.
 SAM_CONCURRENCY = 2
-SAM_ATTEMPTS = 3
 
 UNSPOKEN_SCHEMA = {
     "type": "object",
@@ -58,8 +47,7 @@ For each candidate give:
 - defect_phrase: one concrete noun an object detector can find, e.g. "crack", "scuff", "stain", "gap".
 - t_start, t_end: when it is visible, in seconds from the start of the video.
 Include faint or ambiguous candidates; each one is checked again later. Skip uniform door clearance gaps,
-reflections and shadows, and anything that is not part of the building: rugs, mats, furniture, shoes and
-other belongings. If nothing is visible, return an empty list."""
+reflections and shadows. If nothing is visible, return an empty list."""
 
 MATCH_SCHEMA = {
     "type": "object",
@@ -112,16 +100,9 @@ class Inspector:
 
     async def segment(self, phrase):
         async with self.sam_slots:
-            # SAM streams sometimes drop mid-response; one reset should not sink the whole clip.
-            for attempt in range(SAM_ATTEMPTS):
-                try:
-                    return await sam.run_concept(
-                        self.client, self.file_id, phrase, self.sam_dir, video_key=self.video_key
-                    )
-                except Exception:
-                    if attempt == SAM_ATTEMPTS - 1:
-                        raise
-                    await asyncio.sleep(2 ** attempt)
+            return await sam.run_concept(
+                self.client, self.file_id, phrase, self.sam_dir, video_key=self.video_key
+            )
 
     async def find_evidence(self, item, stem):
         """Try the defect phrase, then the component phrase; keep the first box Spark agrees with."""
@@ -197,31 +178,10 @@ def spoken_matches(spark, spoken, candidates):
     }
 
 
-def relocate(value, old, new):
-    """Point every saved path under `old` at `new` instead."""
-    if isinstance(value, dict):
-        return {key: relocate(item, old, new) for key, item in value.items()}
-    if isinstance(value, list):
-        return [relocate(item, old, new) for item in value]
-    if isinstance(value, str) and value.startswith(old):
-        return new + value[len(old):]
-    return value
-
-
-def publish(staging, final, document):
-    """Swap the new evidence in only once the run has succeeded, and point the document's paths at it."""
-    shutil.rmtree(final, ignore_errors=True)
-    if staging.exists():
-        staging.rename(final)
-    return relocate(document, str(staging), str(final))
-
-
 async def run(clip, out_root="data/processed", room=None):
     clip = Path(clip)
     out = Path(out_root) / clip.stem
-    # New evidence goes to a staging folder so a failed run leaves the last good evidence and findings intact.
-    staging = out / "evidence.partial"
-    shutil.rmtree(staging, ignore_errors=True)
+    shutil.rmtree(out / "evidence", ignore_errors=True)
     proxy = media.make_proxy(clip, out / "proxy.mp4")
     wav = media.make_wav(clip, out / "audio.wav")
 
@@ -233,7 +193,6 @@ async def run(clip, out_root="data/processed", room=None):
     async with api.async_client() as client:
         file_id = await sam.upload_video(client, proxy)
         inspector = Inspector(client, spark, file_id, proxy, out)
-        inspector.evidence_dir = staging
         # Narration parsing and the silent video review do not depend on each other.
         observed, review = await asyncio.gather(
             asyncio.to_thread(observations.extract, spark, turns),
@@ -243,6 +202,7 @@ async def run(clip, out_root="data/processed", room=None):
                 [{"type": "input_text", "text": UNSPOKEN_PROMPT}, {"type": "input_video", "file_id": file_id}],
                 UNSPOKEN_SCHEMA,
                 "unspoken_candidates",
+                model=api.WONDER,
             ),
         )
         (out / "observations.json").write_text(json.dumps([asdict(o) for o in observed], indent=2) + "\n")
@@ -260,7 +220,7 @@ async def run(clip, out_root="data/processed", room=None):
             ),
             coverage.check(inspector, observed, rooms),
         )
-        await alarm.audit_rooms(inspector, client, clip, covered_rooms)
+    (out / "coverage.json").write_text(json.dumps(covered_rooms, indent=2) + "\n")
     spoken, candidates = list(found[: len(defects)]), list(found[len(defects):])
 
     visible = [c for c in candidates if c["status"] != "not_visible" and not covered(c, spoken)]
@@ -276,14 +236,12 @@ async def run(clip, out_root="data/processed", room=None):
         "unspoken_covered_or_rejected": [c for c in candidates if c not in unspoken],
         "coverage": covered_rooms,
     }
-    findings = publish(staging, out / "evidence", findings)
-    (out / "coverage.json").write_text(json.dumps(findings["coverage"], indent=2) + "\n")
     (out / "findings.json").write_text(json.dumps(findings, indent=2) + "\n")
     return findings
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Narration-guided Spark + SAM inspection pass")
+    parser = argparse.ArgumentParser(description="Narration-guided Spark + Wonder + SAM inspection pass")
     parser.add_argument("clip")
     parser.add_argument("--out", default="data/processed")
     parser.add_argument("--room", help="treat the whole clip as this room, e.g. bedroom, instead of using narration")
@@ -308,11 +266,6 @@ def print_coverage(rooms):
             needed = "required" if item["expected"] else ""
             evidence = item["evidence"]["evidence_path"] if item["evidence"] else ""
             print(f"    {item['status']:19} {item['label']:18} {needed:8} {evidence}")
-            if item.get("test_audit"):
-                tests = ", ".join(f"{t['test']} {t['status']}" for t in item["test_audit"]["tests"])
-                print(f"                        test audit ({item['test_audit']['procedure_source']}): {tests}")
-                if item["test_audit"]["disclaimer"]:
-                    print(f"                        note: {item['test_audit']['disclaimer']}")
         for flag in room["gfci_flags"]:
             print(f"    gfci_flag           frame {flag['frame']:3} {flag['note']}")
             print(f"                        evidence: {flag['evidence_path']}")

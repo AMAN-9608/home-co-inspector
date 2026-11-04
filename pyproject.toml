@@ -6,6 +6,7 @@ dependencies = [
     "httpx",
     "meta-sam-parser",
     "openai",
+    "uvicorn",
     "websockets",
 ]
 

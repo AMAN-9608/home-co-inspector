@@ -11,7 +11,7 @@ KEYWORDS = [
     "hairline", "crack", "scuff", "stain", "gap", "caulk", "GFCI",
     "efflorescence", "flashing", "water heater", "smoke detector",
     "smoke alarm", "ground fault", "exhaust fan", "electrical panel", "breaker",
-    "bedroom", "bathroom", "carbon monoxide", "fire", "test button",
+    "bedroom", "bathroom",
 ]
 
 

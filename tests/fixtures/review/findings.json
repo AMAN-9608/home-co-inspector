@@ -1,0 +1,15 @@
+{
+  "spoken": [
+    {"room": "first floor", "component_phrase": "door", "defect_phrase": "crack", "sop_section": "Interior",
+     "utterance": "cracks along the door", "t_start": 10.6, "t_end": 12.9, "source": "spoken", "frame": 23,
+     "box": null, "status": "uncertain", "description": "Thin seam along trim.", "turn_id": "1"},
+    {"room": "first floor", "component_phrase": "frame", "defect_phrase": "crack", "sop_section": "Interior",
+     "utterance": "cracks around the frame", "t_start": 20.6, "t_end": 21.7, "source": "spoken", "frame": 42,
+     "box": [373, 399, 500, 532], "status": "confirmed", "description": "Crack at frame corner."}
+  ],
+  "unspoken": [
+    {"room": "first floor", "component_phrase": "outlet", "defect_phrase": "missing cover", "sop_section": "Electrical",
+     "source": "unspoken", "frame": 50, "status": "uncertain", "description": "Outlet without cover plate."}
+  ],
+  "unspoken_covered_or_rejected": [{"component_phrase": "wall"}]
+}
