@@ -26,7 +26,10 @@
     h1{font-weight:700;letter-spacing:-.02em}
     .nav{position:sticky;top:0;z-index:20;width:100%;height:64px;padding:0 max(24px,calc((100vw - 1320px)/2));gap:28px;background:color-mix(in srgb,#f3f5f4 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid #d3dadd}
     .brand{font-family:inherit;font-size:18px;font-weight:750;font-stretch:118%;letter-spacing:-.01em}
-    .navlinks{margin-left:0}
+    .navlinks{gap:4px;margin-left:0;color:#55606a;font-size:15px;line-height:1.5}
+    .navlinks a{display:inline-flex;align-items:center;min-height:40px;padding:8px 12px;border-radius:6px;transition:background-color 150ms ease,color 150ms ease,transform 120ms var(--ease)}
+    .navlinks a:hover{background:#e6ebed;color:#1c2328}
+    .navlinks a:active{transform:scale(.97)}
     .nav .button{margin-left:auto}
     @media(max-width:720px){.nav{gap:8px;height:auto;min-height:60px;padding:8px 16px}.brand span{display:none}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}

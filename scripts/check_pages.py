@@ -35,6 +35,8 @@ with tempfile.TemporaryDirectory() as directory:
             about_brand = typography('.brand')
             header_style = lambda selector: page.locator(selector).evaluate("el => { const s = getComputedStyle(el); return [s.height, s.backgroundColor, s.borderBottomWidth, s.borderBottomColor, s.position]; }")
             about_header = header_style('header.nav')
+            nav_text = lambda selector: page.locator(selector).first.evaluate("el => { const s = getComputedStyle(el); return [s.fontFamily, s.fontSize, s.fontWeight, s.color, s.lineHeight]; }")
+            about_nav = nav_text('.navlinks a')
             assert '/about/' in page.url
             assert page.locator('.frame img').evaluate('(img) => img.complete && img.naturalWidth > 0')
             page.get_by_role('link', name='Try the demo', exact=False).first.click()
@@ -42,6 +44,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert about_heading == typography('.home-copy h1'), (about_heading, typography('.home-copy h1'))
             assert about_brand == typography('.brand'), (about_brand, typography('.brand'))
             assert about_header == header_style('header.appbar'), (about_header, header_style('header.appbar'))
+            assert about_nav == nav_text('#nav [data-page="history"]'), (about_nav, nav_text('#nav [data-page="history"]'))
             assert '/demo/' in page.url
             page.get_by_role('link', name='About the product').click()
             page.get_by_role('heading', name='A closer look at every walkthrough.').wait_for()
