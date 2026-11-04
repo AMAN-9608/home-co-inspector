@@ -112,7 +112,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert all('review needed' not in text.lower() for text in page.locator('.finding.accepted .finding-header').all_inner_texts())
             page.get_by_role('button', name='Reject', exact=True).last.click()
             page.get_by_role('button', name='Confirm rejection').click()
-            page.get_by_text('Rejected', exact=True).wait_for()
+            page.locator('.finding .badge', has_text='Rejected').first.wait_for()
             assert 'review needed' not in page.locator('.finding.rejected .finding-header').inner_text().lower()
             page.get_by_role('button', name='Edit', exact=True).last.click()
             page.get_by_label('Description').fill('Inspected and verified wall scuff.')
