@@ -103,3 +103,28 @@ def test_meta_section_omits_removed_explanatory_copy():
     about = (ROOT / 'web/about.html').read_text()
     for removed in ('The coverage checklist reuses SAM searches', 'Try the actual review experience below.', 'It can return uncertain or not visible.'):
         assert removed not in about
+
+
+def test_about_navigation_matches_section_labels():
+    about = (ROOT / 'web/about.html').read_text()
+    assert '<a href="#impact">Why this matters</a>' in about
+    assert '<a href="#meta">How It Works</a>' in about
+    assert '<span class="eyebrow">How It Works</span>' in about
+    assert 'Explore the AI' not in about
+
+
+def test_hero_keeps_only_interactive_demo_action():
+    about = (ROOT / 'web/about.html').read_text()
+    actions = about.split('<div class="actions">', 1)[1].split('</div>', 1)[0]
+    assert 'Try the interactive demo' in actions
+    assert 'How It Works' not in actions
+
+
+def test_landing_demo_links_share_label_without_closing_callout():
+    import re
+    about = (ROOT / 'web/about.html').read_text()
+    labels = re.findall(r'<a[^>]*href="../demo/"[^>]*>(.*?)</a>', about, re.S)
+    assert len(labels) == 2
+    assert all(label.startswith('Try the interactive demo') for label in labels)
+    assert 'See it in action' not in about
+    assert 'Every detail, considered.' not in about

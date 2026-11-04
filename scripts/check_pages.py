@@ -39,7 +39,7 @@ with tempfile.TemporaryDirectory() as directory:
             about_nav = nav_text('.navlinks a')
             assert '/about/' in page.url
             assert page.locator('.frame img').evaluate('(img) => img.complete && img.naturalWidth > 0')
-            page.get_by_role('link', name='Try the demo', exact=False).first.click()
+            page.get_by_role('link', name='Try the interactive demo', exact=False).first.click()
             page.get_by_role('heading', name='Turn a walkthrough video into a signed inspection report.').wait_for()
             assert about_heading == typography('.home-copy h1'), (about_heading, typography('.home-copy h1'))
             assert about_brand == typography('.brand'), (about_brand, typography('.brand'))
@@ -48,7 +48,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert '/demo/' in page.url
             page.get_by_role('link', name='About the product').click()
             page.get_by_role('heading', name='A closer look at every walkthrough.').wait_for()
-            page.get_by_role('link', name='Try the demo', exact=False).first.click()
+            page.get_by_role('link', name='Try the interactive demo', exact=False).first.click()
             page.get_by_role('heading', name='Turn a walkthrough video into a signed inspection report.').wait_for()
             assert page.get_by_role('link', name='Home Co-Inspector home').is_visible()
             assert page.get_by_role('button', name='Watch the demo', exact=False).count() == 0
