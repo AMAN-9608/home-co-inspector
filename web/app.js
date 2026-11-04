@@ -85,12 +85,12 @@ function heroFigure() {
   const notes=[];
   if(f.utterance)notes.push(['','The inspector said',`“${f.utterance}”`]);
   if(f.located)notes.push(['mark','SAM 3.1 found it in the video',f.confidence!=null?`${Math.round(f.confidence*100)}% match, boxed in red`:'Boxed in red on the frame']);
-  if(f.corroborated)notes.push(['ai','A second AI pass agrees','Muse Spark flagged the same defect on its own']);
+  if(f.corroborated)notes.push(['ai','A second AI pass agrees','Muse Wonder flagged the same defect on its own']);
   if(!notes.length)notes.push(['','Evidence frame',findingTitle(f)]);
   return `<figure class="markup-figure"><img src="${esc(f.image)}" alt="Evidence frame: ${esc(findingTitle(f))}"><figcaption>${notes.map(([kind,label,text])=>`<p class="callout ${kind}"><b>${label}</b><span>${esc(text)}</span></p>`).join('')}</figcaption></figure>`;
 }
 function story() {
-  const items=[['','Narrate as you film','Walk the home and say what you see. Voice Transcribe captures every word.','You'],['ai','Each defect is found in the video','Muse Spark pulls out the defects you mention. SAM 3.1 boxes each one on the frame.','AI'],['ai','A second look','Muse Spark watches the footage again for problems nobody mentioned.','AI'],['','You decide and sign','Accept, edit or reject each finding. Only what you sign goes in the client report.','You']];
+  const items=[['','Narrate as you film','Walk through the home and describe what you see. Your narration is transcribed for analysis.','You'],['ai','Review your observations with evidence','Muse Spark structures your observations. SAM 3.1 attempts to locate them, and Spark checks the supporting frames.','AI'],['ai','Get an independent second look','In parallel, Muse Wonder reviews the footage for visible issues you didn’t mention. Additional candidates go through the same evidence checks.','AI'],['','Review, decide, and sign off','Accept, edit, or reject findings, and add anything missing. Sign off to create a report with the findings you approved.','You']];
   return `<section aria-labelledby="how-title"><div class="section-head"><h2 id="how-title">How it works</h2></div><ol class="process">${items.map(([kind,title,text,who])=>`<li class="${kind}"><h3>${title}</h3><p>${text}</p><span class="tag who ${who==='AI'?'ai':''}">${who==='AI'?`${icon('spark')}AI`:'You'}</span></li>`).join('')}</ol></section>`;
 }
 function overview() {

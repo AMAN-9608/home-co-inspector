@@ -178,7 +178,13 @@ def test_pipeline_writes_coverage_and_tags_unspoken_candidates_with_their_room(m
     monkeypatch.setattr(pipeline.asr, "transcribe", lambda wav: {"turns": [], "transcript": ""})
     monkeypatch.setattr(pipeline.api, "sync_client", lambda: None)
     monkeypatch.setattr(pipeline.api, "async_client", fake_client)
-    monkeypatch.setattr(pipeline.api, "spark_json", lambda *args: {"candidates": [candidate]})
+    second_look_models = []
+
+    def fake_second_look(*args, model=None):
+        second_look_models.append(model)
+        return {"candidates": [candidate]}
+
+    monkeypatch.setattr(pipeline.api, "spark_json", fake_second_look)
     monkeypatch.setattr(pipeline.sam, "upload_video", fake_upload)
     monkeypatch.setattr(pipeline.observations, "extract", lambda spark, turns: observed)
     monkeypatch.setattr(pipeline.Inspector, "find_evidence", fake_evidence)
@@ -193,3 +199,4 @@ def test_pipeline_writes_coverage_and_tags_unspoken_candidates_with_their_room(m
     assert [r["room"] for r in findings["coverage"]] == ["bedroom", "bathroom"]
     assert (out / "walk" / "coverage.json").exists()
     assert findings["unspoken"][0]["room"] == "bathroom"
+    assert second_look_models == ["muse-wonder-1.0"]

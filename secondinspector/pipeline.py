@@ -202,6 +202,7 @@ async def run(clip, out_root="data/processed", room=None):
                 [{"type": "input_text", "text": UNSPOKEN_PROMPT}, {"type": "input_video", "file_id": file_id}],
                 UNSPOKEN_SCHEMA,
                 "unspoken_candidates",
+                model=api.WONDER,
             ),
         )
         (out / "observations.json").write_text(json.dumps([asdict(o) for o in observed], indent=2) + "\n")
@@ -240,7 +241,7 @@ async def run(clip, out_root="data/processed", room=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Narration-guided Spark + SAM inspection pass")
+    parser = argparse.ArgumentParser(description="Narration-guided Spark + Wonder + SAM inspection pass")
     parser.add_argument("clip")
     parser.add_argument("--out", default="data/processed")
     parser.add_argument("--room", help="treat the whole clip as this room, e.g. bedroom, instead of using narration")

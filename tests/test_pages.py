@@ -128,3 +128,32 @@ def test_landing_demo_links_share_label_without_closing_callout():
     assert all(label.startswith('Try the interactive demo') for label in labels)
     assert 'See it in action' not in about
     assert 'Every detail, considered.' not in about
+
+
+def test_meta_gives_second_look_its_own_card_after_evidence_check():
+    import re
+    about = (ROOT / 'web/about.html').read_text()
+    meta = about[about.index('id="meta"'):]
+    cards = re.findall(r'<article class="step">(.*?)</article>', meta, re.S)
+    assert len(cards) == 5
+    assert 'Muse Spark captures your observations' in cards[0]
+    assert 'Muse Spark checks the evidence' in cards[2]
+    assert 'Muse Wonder takes an independent second look' in cards[3]
+    assert 'parallel' in cards[3]
+    assert 'You review and sign off' in cards[4]
+
+
+def test_demo_workflow_describes_candidate_review_and_parallel_second_look():
+    app = (ROOT / 'web/app.js').read_text()
+    story = app.split('function story() {', 1)[1].split('\n}', 1)[0]
+    for title in ('Narrate as you film', 'Review your observations with evidence', 'Get an independent second look', 'Review, decide, and sign off'):
+        assert title in story
+    assert 'In parallel' in story
+    assert 'captures every word' not in story
+    assert 'Each defect is found' not in story
+
+
+def test_demo_hero_names_wonder_for_independent_review():
+    app = (ROOT / 'web/app.js').read_text()
+    assert 'Muse Wonder flagged the same defect on its own' in app
+    assert 'The independent video review flagged the same issue' not in app
