@@ -14,7 +14,7 @@ def request(root, method, path, **kwargs):
     module = importlib.import_module('secondinspector.webapp')
 
     async def run():
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=module.Workspace(root)), base_url='http://test') as client:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=module.Workspace(root)), base_url='http://localhost') as client:
             return await client.request(method, path, **kwargs)
 
     return asyncio.run(run())
@@ -128,7 +128,7 @@ def test_live_progress_tracks_pipeline_artifacts(tmp_path):
     folder.mkdir()
 
     async def run():
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://localhost') as client:
             assert (await client.get('/api/jobs/active')).json()['stage'] == 0
             (folder / 'asr.json').write_text('{}')
             assert (await client.get('/api/jobs/active')).json()['stage'] == 1
@@ -165,3 +165,41 @@ def test_findings_carry_confidence_location_and_ai_corroboration(tmp_path):
     spoken, unspoken = request(tmp_path, 'GET', '/api/clips/garage').json()['findings']
     assert (spoken['confidence'], spoken['located'], spoken['corroborated']) == (0.75, True, 1)
     assert (unspoken['confidence'], unspoken['located'], unspoken['corroborated']) == (None, False, 0)
+
+
+def test_rejects_foreign_hosts_and_origins(tmp_path):
+    recording(tmp_path)
+    # A DNS-rebound attacker domain resolves to 127.0.0.1 but keeps its own Host header.
+    assert request(tmp_path, 'GET', '/api/clips', headers={'host': 'attacker.example'}).status_code == 400
+    assert request(tmp_path, 'GET', '/api/clips', headers={'host': '127.0.0.1:8000'}).status_code == 200
+    sign = {'name': 'Alex'}
+    assert request(tmp_path, 'POST', '/api/clips/garage/sign', json=sign, headers={'sec-fetch-site': 'same-site'}).status_code == 400
+    assert request(tmp_path, 'POST', '/api/clips/garage/sign', json=sign, headers={'origin': 'http://localhost:3000'}).status_code == 400
+    ok = request(tmp_path, 'POST', '/api/clips/garage/decision', json={'id': 'spoken-0', 'decision': 'accepted'},
+                 headers={'sec-fetch-site': 'same-origin', 'origin': 'http://localhost'})
+    assert ok.status_code == 200
+
+
+def test_svg_media_cannot_run_script(tmp_path):
+    folder = recording(tmp_path)
+    (folder / 'level-kitchen.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+    response = request(tmp_path, 'GET', '/media/data/processed/garage/level-kitchen.svg')
+    assert response.status_code == 200
+    policy = response.headers['content-security-policy']
+    assert "default-src 'none'" in policy and 'sandbox' in policy
+    assert 'content-security-policy' not in request(tmp_path, 'GET', '/media/data/processed/garage/evidence/frame.jpg').headers
+
+
+def test_only_one_analysis_runs_at_a_time(tmp_path):
+    recording(tmp_path)
+    module = importlib.import_module('secondinspector.webapp')
+    app = module.Workspace(tmp_path)
+    app.jobs['active'] = {'status': 'running', 'clip': 'other'}
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://localhost') as client:
+            return await client.post('/api/analyze', content=b'video', headers={'x-filename': 'garage.mp4'})
+
+    response = asyncio.run(run())
+    assert response.status_code == 409 and 'already running' in response.json()['error']
+    assert not (tmp_path / 'data/raw').exists()

@@ -13,7 +13,7 @@ FIXTURE = ROOT / 'tests/fixtures/report_min'
 
 def test_local_web_pages_use_home_co_inspector(tmp_path):
     async def run():
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=Workspace(tmp_path)), base_url='http://test') as client:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=Workspace(tmp_path)), base_url='http://localhost') as client:
             home = (await client.get('/')).text
             app = (await client.get('/app.js')).text
             assert 'Home Co-Inspector' in home and 'Home Co-Inspector' in app

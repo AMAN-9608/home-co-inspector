@@ -6,17 +6,27 @@
 `serve` hosts web/level.html and appends POST /readings to <out>/level_readings.json.
 iOS only exposes DeviceOrientationEvent over HTTPS (after a permission tap), so on a
 phone open the page through a tunnel, e.g.  cloudflared tunnel --url http://localhost:8000
+The tunnel is public, so POST /readings needs the token `serve` prints; open the page
+with ?t=<token> appended to the tunnel URL.
 `analyze` writes <out>/level.json plus a dot map per room, level-<room>.svg.
 """
 import argparse
+import hmac
 import json
 import math
 import re
+import secrets
+import threading
+from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlsplit
 
 PAGE = Path(__file__).resolve().parent.parent / "web" / "level.html"
 READINGS = "level_readings.json"
+MAX_BODY = 64 * 1024
+MAX_READINGS = 2000
+MAX_TEXT = 100
 
 # VERIFY before the demo (PLAN.md needs a cited threshold). Candidate source: NAHB
 # Residential Construction Performance Guidelines, "floors should not be more than 1/4 in
@@ -67,7 +77,7 @@ def svg_map(room, items, threshold_deg):
     rows = max(1, math.ceil(n / cols))
     w, h = cols * 160, rows * 160 + 30
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" font-family="sans-serif" font-size="12">',
-           f'<text x="8" y="18" font-weight="bold">{room} (threshold {threshold_deg} deg)</text>']
+           f'<text x="8" y="18" font-weight="bold">{escape(str(room))} (threshold {threshold_deg} deg)</text>']
     for i, (r, m) in enumerate(items):
         cx, cy = (i % cols) * 160 + 80, (i // cols) * 160 + 100
         color = "#d62728" if m["over_threshold"] else "#2ca02c"
@@ -78,7 +88,7 @@ def svg_map(room, items, threshold_deg):
             x2, y2 = cx + ln * math.sin(a), cy - ln * math.cos(a)
             out.append(f'<line x1="{cx}" y1="{cy}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{color}" stroke-width="3"/>')
             out.append(f'<circle cx="{x2:.1f}" cy="{y2:.1f}" r="3" fill="{color}"/>')
-        out.append(f'<text x="{cx}" y="{cy - 60}" text-anchor="middle">{r.get("spot", "")}</text>')
+        out.append(f'<text x="{cx}" y="{cy - 60}" text-anchor="middle">{escape(str(r.get("spot", "")))}</text>')
         out.append(f'<text x="{cx}" y="{cy + 60}" text-anchor="middle">{m["slope_deg"]:.2f} deg</text>')
     out.append("</svg>")
     return "\n".join(out)
@@ -117,39 +127,67 @@ def append_reading(out_dir, reading):
     return len(data)
 
 
-def make_server(out_dir, port=8000, host="0.0.0.0"):
+def valid_reading(it):
+    """Raise ValueError or TypeError unless `it` looks like a reading level.html sends."""
+    if not isinstance(it, dict):
+        raise TypeError("reading must be an object")
+    for key in ("pitch_deg", "roll_deg"):
+        if not math.isfinite(float(it[key])):
+            raise ValueError(f"{key} must be finite")
+    for key in ("room", "spot", "t"):
+        if not isinstance(it.get(key, ""), str) or len(it.get(key, "")) > MAX_TEXT:
+            raise ValueError(f"{key} must be text up to {MAX_TEXT} characters")
+    return it
+
+
+def make_server(out_dir, port=8000, host="127.0.0.1", token=None):
+    """The server's `token` attribute must be sent as X-Level-Token with every POST."""
+    token = token or secrets.token_urlsafe(16)
+    lock = threading.Lock()
+
     class Handler(BaseHTTPRequestHandler):
         def _send(self, code, body, ctype="application/json"):
             self.send_response(code)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
+            self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
             self.wfile.write(body)
 
         def do_GET(self):
-            if self.path in ("/", "/level.html"):
+            if urlsplit(self.path).path in ("/", "/level.html"):
                 self._send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
             else:
                 self._send(404, b'{"error":"not found"}')
 
         def do_POST(self):
-            if self.path != "/readings":
+            if urlsplit(self.path).path != "/readings":
                 return self._send(404, b'{"error":"not found"}')
+            if not hmac.compare_digest(self.headers.get("X-Level-Token", "").encode(), token.encode()):
+                return self._send(403, b'{"error":"missing or wrong token; open the link printed by serve"}')
             try:
-                r = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
-                items = r if isinstance(r, list) else [r]
-                for it in items:
-                    float(it["pitch_deg"]), float(it["roll_deg"])
+                length = int(self.headers.get("Content-Length", 0))
+                if not 0 < length <= MAX_BODY:
+                    return self._send(413, b'{"error":"reading too large"}')
+                r = json.loads(self.rfile.read(length))
+                items = [valid_reading(it) for it in (r if isinstance(r, list) else [r])]
             except (ValueError, KeyError, TypeError):
                 return self._send(400, b'{"error":"bad reading"}')
-            for it in items:
-                n = append_reading(out_dir, it)
+            with lock:
+                path = Path(out_dir) / READINGS
+                existing = len(json.loads(path.read_text())) if path.exists() else 0
+                if existing + len(items) > MAX_READINGS:
+                    return self._send(413, b'{"error":"too many readings for this inspection"}')
+                for it in items:
+                    n = append_reading(out_dir, it)
             self._send(200, json.dumps({"ok": True, "count": n}).encode())
 
         def log_message(self, *a):
             pass
 
-    return ThreadingHTTPServer((host, port), Handler)
+    server = ThreadingHTTPServer((host, port), Handler)
+    server.token = token
+    return server
 
 
 def main(argv=None):
@@ -158,13 +196,17 @@ def main(argv=None):
     s = sub.add_parser("serve", help="serve level.html; iOS needs HTTPS: cloudflared tunnel --url http://localhost:8000")
     s.add_argument("--out", required=True)
     s.add_argument("--port", type=int, default=8000)
+    s.add_argument("--host", default="127.0.0.1",
+                   help="0.0.0.0 also accepts phones on the local network (the token is still required)")
     a = sub.add_parser("analyze")
     a.add_argument("out_dir")
     a.add_argument("--threshold", type=float, default=THRESHOLD_DEG)
     args = p.parse_args(argv)
     if args.cmd == "serve":
-        print(f"http://localhost:{args.port}/  (phone: cloudflared tunnel --url http://localhost:{args.port})")
-        make_server(args.out, args.port).serve_forever()
+        server = make_server(args.out, args.port, args.host)
+        print(f"http://localhost:{args.port}/?t={server.token}")
+        print(f"phone: cloudflared tunnel --url http://localhost:{args.port}, then open <tunnel URL>/?t={server.token}")
+        server.serve_forever()
     else:
         r = analyze(args.out_dir, args.threshold)
         n, k = len(r["readings"]), len(r["findings"])
