@@ -37,10 +37,12 @@ Neither `pyproject.toml` nor `uv.lock` received new dependencies for this interf
 
 ## Showcase flow
 
-1. Choose **Watch the demo replay** on the overview, or **Analyze new clip**. Upload a new recording for live analysis, or choose **Replay a processed clip** for a short, explicitly labeled demo sequence using saved results.
-2. Review the evidence. Click a finding (or its timestamp) to show its evidence frame, spoken quote and trust badges in the side panel. Accept a finding, edit and accept it, or reject it with an optional reason. Add your own observation with **Add missing finding**. Keyboard: J/K move, A accept, E edit, R reject.
-3. Enter your inspector name and confirm the review to sign off. Every candidate finding must have a decision first.
-4. Open **Reports** to view a signed-off inspection. Use **Print / Save as PDF** to print or save the report.
+1. On **Home**, choose **Watch the demo** to replay the analysis of a processed clip, or **Upload a walkthrough** to analyze a new recording. The home figure is a real evidence frame annotated with what the inspector said, what SAM 3.1 found and whether a second AI pass agrees.
+2. Review one finding at a time. The list on the left shows each finding's status and source (your narration, AI only, level sensor). The selected finding shows its evidence frame, your spoken quote, the evidence checks and **Accept**, **Edit** and **Reject**. After each decision the next undecided finding opens. Keyboard: J/K move, A accept, E edit, R reject. Use **Add missing finding** for anything the AI missed.
+3. When every finding has a decision, **Sign off on this clip** turns green. Enter your name and confirm.
+4. Open **Reports** to view a signed inspection, then **Print / Save as PDF**.
+
+The visual language is described in `docs/design-direction.md`: graphite for the inspector, blue pencil for the AI and red pen for defects.
 
 Live analysis uses the existing Spark/SAM pipeline and requires its existing credentials (`MODEL_API_KEY`) and media tools. Its duration depends on the recording and services. Upload names get unique suffixes so an existing recording is never overwritten. The demo replay does not run the models or reset reviews.
 
