@@ -30,10 +30,18 @@ with tempfile.TemporaryDirectory() as directory:
             page.on('response', lambda res: failed.append(res.url) if res.status >= 400 and '127.0.0.1:8767' in res.url else None)
             page.goto('http://127.0.0.1:8767/home-co-inspector/')
             page.get_by_role('heading', name='A closer look at every walkthrough.').wait_for()
+            typography = lambda selector: page.locator(selector).evaluate("el => { const s = getComputedStyle(el); return [s.fontFamily, s.fontStretch, s.fontWeight]; }")
+            about_heading = typography('h1')
+            about_brand = typography('.brand')
+            header_style = lambda selector: page.locator(selector).evaluate("el => { const s = getComputedStyle(el); return [s.height, s.backgroundColor, s.borderBottomWidth, s.borderBottomColor, s.position]; }")
+            about_header = header_style('header.nav')
             assert '/about/' in page.url
             assert page.locator('.frame img').evaluate('(img) => img.complete && img.naturalWidth > 0')
             page.get_by_role('link', name='Try the demo', exact=False).first.click()
             page.get_by_role('heading', name='Turn a walkthrough video into a signed inspection report.').wait_for()
+            assert about_heading == typography('.home-copy h1'), (about_heading, typography('.home-copy h1'))
+            assert about_brand == typography('.brand'), (about_brand, typography('.brand'))
+            assert about_header == header_style('header.appbar'), (about_header, header_style('header.appbar'))
             assert '/demo/' in page.url
             page.get_by_role('link', name='About the product').click()
             page.get_by_role('heading', name='A closer look at every walkthrough.').wait_for()
@@ -43,7 +51,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert page.get_by_role('button', name='Watch the demo', exact=False).count() == 0
             assert page.title().endswith('Home Co-Inspector')
             assert 'Second Inspector' not in page.locator('body').inner_text()
-            page.get_by_role('note').get_by_text('DEMO', exact=False).wait_for()
+            assert page.get_by_text('Saved sample findings. The silent clip', exact=False).count() == 0
             assert page.locator('[data-action="analyze"]').count() == 0
             page.locator('#nav [data-page="history"]').click()
             page.get_by_role('searchbox', name='Search clips').fill('no matching clip')

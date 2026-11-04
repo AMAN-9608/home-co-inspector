@@ -30,7 +30,6 @@ def build(output):
     html = html.replace('href="/" aria-label="Home Co-Inspector home"', 'href="./" aria-label="Home Co-Inspector home"')
     html = html.replace('<button class="primary appbar-cta"', '<a class="about-product" href="../about/">About the product</a>\n    <button class="primary appbar-cta"')
     html = html.replace('</head>', '<style>.about-product{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 19px;margin-left:auto;border:1px solid #1c2328;border-radius:4px;background:#1c2328;color:white;text-decoration:none;font-size:13px;font-weight:700;transition:background-color 160ms ease,transform 140ms ease}.about-product:hover{background:#33444f}.about-product:active{transform:scale(.97)}.appbar-cta{margin-left:0}@media(max-width:720px){.about-product{min-height:39px;padding:9px 12px;font-size:11px}}@media(prefers-reduced-motion:reduce){.about-product{transition:none}}</style>\n</head>')
-    html = html.replace('<main id="main"', '<div class="demo-banner" role="note">DEMO · Saved sample findings. The silent clip is a montage of evidence frames; no new analysis runs. Your decisions stay in this browser.</div>\n  <main id="main"')
     (app / 'index.html').write_text(html, encoding='utf-8')
     (output / '.nojekyll').touch()
 

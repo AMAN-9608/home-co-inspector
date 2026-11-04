@@ -29,7 +29,7 @@ def test_pages_build_contains_only_curated_demo_data(tmp_path):
     assert 'href="../about/"' in html and 'About the product' in html
     assert './pages.js' in html and './app.js' in html and './styles.css' in html
     assert 'href="./" aria-label="Home Co-Inspector home"' in html
-    assert 'DEMO' in html and '.env' not in html
+    assert 'Saved sample findings. The silent clip' not in html and '.env' not in html
     assert 'Home Co-Inspector' in html and 'Second Inspector' not in html
     assert 'Home Co-Inspector' in (demo / 'app.js').read_text()
     assert 'Second Inspector' not in (demo / 'app.js').read_text()
